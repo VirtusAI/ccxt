@@ -28,7 +28,9 @@
     "pandoc-doc-manual": "pandoc --wrap=preserve --columns=10000 --from=markdown --to=rst --output=doc/manual.rst ccxt.wiki/Manual.md",
     "pandoc-doc-install": "pandoc --wrap=preserve --columns=10000 --from=markdown --to=rst --output=doc/install.rst ccxt.wiki/Install.md",
     "pandoc-doc-exchanges": "pandoc --wrap=preserve --columns=10000 --from=markdown --to=rst --output=doc/exchanges.rst ccxt.wiki/Exchange-Markets.md",
-    "pandoc-doc-exchanges-by-country": "pandoc --wrap=preserve --columns=10000 --from=markdown --to=rst --output=doc/exchanges-by-country.rst ccxt.wiki/Exchange-Markets-By-Country.md"
+    "pandoc-doc-exchanges-by-country": "pandoc --wrap=preserve --columns=10000 --from=markdown --to=rst --output=doc/exchanges-by-country.rst ccxt.wiki/Exchange-Markets-By-Country.md",
+    "transpile-es5": "babel js --out-dir js-es5 --ignore js/test && node ccxt-es5-generator.js && babel ccxt-es5.js --out-file ccxt-es5.js && npm run browserify-es5",
+    "browserify-es5": "browserify --debug ./ccxt.browser-es5.js > ./build/ccxt.browser-es5.js"
   },
   "types": "./ccxt.d.ts",
   "dependencies": {
@@ -37,6 +39,11 @@
     "qs": "6.5.1"
   },
   "devDependencies": {
+    "@babel/cli": "7.0.0-beta.35",
+    "@babel/core": "7.0.0-beta.35",
+    "@babel/plugin-transform-runtime": "7.0.0-beta.35",
+    "@babel/preset-env": "7.0.0-beta.35",
+    "@babel/runtime": "7.0.0-beta.35",
     "ansicolor": "^1.1.71",
     "as-table": "^1.0.31",
     "asciichart": "^1.5.1",
