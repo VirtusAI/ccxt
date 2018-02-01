@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -45,8 +45,11 @@ function (_Exchange) {
         // Brazil
         'rateLimit': 1000,
         'version': 'v3',
-        'hasCORS': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': true,
+          'createMarketOrder': false,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27837060-e7c58714-60ea-11e7-9192-f05e86adb83f.jpg',
           'api': {
@@ -330,7 +333,7 @@ function (_Exchange) {
                 price = _args5.length > 4 && _args5[4] !== undefined ? _args5[4] : undefined;
                 params = _args5.length > 5 && _args5[5] !== undefined ? _args5[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context5.next = 4;
                   break;
                 }
@@ -422,7 +425,7 @@ function (_Exchange) {
     value: function parseOrder(order) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var side = undefined;
-      if ('order_type' in order) side = order['order_type'] == 1 ? 'buy' : 'sell';
+      if ('order_type' in order) side = order['order_type'] === 1 ? 'buy' : 'sell';
       var status = order['status'];
       var symbol = undefined;
 
@@ -524,7 +527,8 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee8(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             request,
             account_ref,
             tx_fee,
@@ -534,62 +538,63 @@ function (_Exchange) {
           while (1) {
             switch (_context8.prev = _context8.next) {
               case 0:
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                _context8.next = 3;
+                tag = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : undefined;
+                params = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : {};
+                _context8.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 request = {
                   'coin': currency,
                   'quantity': amount.toFixed(10),
                   'address': address
                 };
 
-                if (!(currency == 'BRL')) {
-                  _context8.next = 10;
+                if (!(currency === 'BRL')) {
+                  _context8.next = 11;
                   break;
                 }
 
                 account_ref = 'account_ref' in params;
 
                 if (account_ref) {
-                  _context8.next = 8;
+                  _context8.next = 9;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' requires account_ref parameter to withdraw ' + currency);
 
-              case 8:
-                _context8.next = 14;
+              case 9:
+                _context8.next = 15;
                 break;
 
-              case 10:
-                if (!(currency != 'LTC')) {
-                  _context8.next = 14;
+              case 11:
+                if (!(currency !== 'LTC')) {
+                  _context8.next = 15;
                   break;
                 }
 
                 tx_fee = 'tx_fee' in params;
 
                 if (tx_fee) {
-                  _context8.next = 14;
+                  _context8.next = 15;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' requires tx_fee parameter to withdraw ' + currency);
 
-              case 14:
-                _context8.next = 16;
+              case 15:
+                _context8.next = 17;
                 return this.privatePostWithdrawCoin(this.extend(request, params));
 
-              case 16:
+              case 17:
                 response = _context8.sent;
                 return _context8.abrupt("return", {
                   'info': response,
                   'id': response['response_data']['withdrawal']['id']
                 });
 
-              case 18:
+              case 19:
               case "end":
                 return _context8.stop();
             }
@@ -611,7 +616,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api] + '/';
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += this.implodeParams(path, params);
       } else {
         this.checkRequiredCredentials();

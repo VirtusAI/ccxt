@@ -2,8 +2,8 @@
 
 //  ---------------------------------------------------------------------------
 
-const Exchange = require ('./base/Exchange')
-const { ExchangeError, AuthenticationError } = require ('./base/errors')
+const Exchange = require ('./base/Exchange');
+const { ExchangeError, AuthenticationError } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
@@ -16,9 +16,11 @@ module.exports = class gatecoin extends Exchange {
             'rateLimit': 2000,
             'countries': 'HK', // Hong Kong
             'comment': 'a regulated/licensed exchange',
-            'hasCORS': false,
-            'hasFetchTickers': true,
-            'hasFetchOHLCV': true,
+            'has': {
+                'CORS': false,
+                'fetchTickers': true,
+                'fetchOHLCV': true,
+            },
             'timeframes': {
                 '1m': '1m',
                 '15m': '15m',
@@ -343,7 +345,7 @@ module.exports = class gatecoin extends Exchange {
             'CurrencyPair': market['id'],
             'Timeframe': this.timeframes[timeframe],
         };
-        if (limit)
+        if (typeof limit !== 'undefined')
             request['Count'] = limit;
         request = this.extend (request, params);
         let response = await this.publicGetPublicTickerHistoryCurrencyPairTimeframe (request);
@@ -386,14 +388,15 @@ module.exports = class gatecoin extends Exchange {
         } else {
             this.checkRequiredCredentials ();
             let nonce = this.nonce ();
+            let nonceString = nonce.toString ();
             let contentType = (method == 'GET') ? '' : 'application/json';
-            let auth = method + url + contentType + nonce.toString ();
+            let auth = method + url + contentType + nonceString;
             auth = auth.toLowerCase ();
             let signature = this.hmac (this.encode (auth), this.encode (this.secret), 'sha256', 'base64');
             headers = {
                 'API_PUBLIC_KEY': this.apiKey,
-                'API_REQUEST_SIGNATURE': signature,
-                'API_REQUEST_DATE': nonce,
+                'API_REQUEST_SIGNATURE': this.decode (signature),
+                'API_REQUEST_DATE': nonceString,
             };
             if (method != 'GET') {
                 headers['Content-Type'] = contentType;

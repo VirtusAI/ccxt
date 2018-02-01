@@ -21,7 +21,9 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError,
+    OrderNotFound = _require.OrderNotFound,
+    NotSupported = _require.NotSupported; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -45,7 +47,14 @@ function (_Exchange) {
         // Australia
         'rateLimit': 1000,
         // market data cached for 1 second (trades cached for 2 seconds)
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'fetchOrder': true,
+          'fetchOrders': true,
+          'fetchClosedOrders': 'emulated',
+          'fetchOpenOrders': true,
+          'fetchMyTrades': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/29142911-0e1acfc2-7d5c-11e7-98c4-07d9532b29d7.jpg',
           'api': 'https://api.btcmarkets.net',
@@ -424,25 +433,26 @@ function (_Exchange) {
 
                 orderSide = side == 'buy' ? 'Bid' : 'Ask';
                 order = this.ordered({
-                  'currency': market['quote'],
-                  'instrument': market['base'],
-                  'price': price * multiplier,
-                  'volume': amount * multiplier,
-                  'orderSide': orderSide,
-                  'ordertype': this.capitalize(type),
-                  'clientRequestId': this.nonce().toString()
+                  'currency': market['quote']
                 });
-                _context5.next = 10;
-                return this.privatePostOrderCreate(this.extend(order, params));
+                order['currency'] = market['quote'];
+                order['instrument'] = market['base'];
+                order['price'] = parseInt(price * multiplier);
+                order['volume'] = parseInt(amount * multiplier);
+                order['orderSide'] = orderSide;
+                order['ordertype'] = this.capitalize(type);
+                order['clientRequestId'] = this.nonce().toString();
+                _context5.next = 17;
+                return this.privatePostOrderCreate(order);
 
-              case 10:
+              case 17:
                 response = _context5.sent;
                 return _context5.abrupt("return", {
                   'info': response,
                   'id': response['id'].toString()
                 });
 
-              case 12:
+              case 19:
               case "end":
                 return _context5.stop();
             }
@@ -460,6 +470,7 @@ function (_Exchange) {
       var _cancelOrders = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee6(ids) {
+        var i;
         return _regeneratorRuntime.wrap(function _callee6$(_context6) {
           while (1) {
             switch (_context6.prev = _context6.next) {
@@ -468,15 +479,19 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 2:
-                _context6.next = 4;
+                for (i = 0; i < ids.length; i++) {
+                  ids[i] = parseInt(ids[i]);
+                }
+
+                _context6.next = 5;
                 return this.privatePostOrderCancel({
-                  'order_ids': ids
+                  'orderIds': ids
                 });
 
-              case 4:
+              case 5:
                 return _context6.abrupt("return", _context6.sent);
 
-              case 5:
+              case 6:
               case "end":
                 return _context6.stop();
             }
@@ -526,6 +541,391 @@ function (_Exchange) {
       };
     }()
   }, {
+    key: "parseMyTrade",
+    value: function parseMyTrade(trade, market) {
+      var multiplier = 100000000;
+      var timestamp = trade['creationTime'];
+      var side = trade['side'] == 'Bid' ? 'buy' : 'sell'; // BTCMarkets always charge in AUD for AUD-related transactions.
+
+      var currency = market['quote'] == 'AUD' ? market['quote'] : market['base'];
+      return {
+        'info': trade,
+        'id': trade['id'].toString(),
+        'timestamp': timestamp,
+        'datetime': this.iso8601(timestamp),
+        'symbol': market['symbol'],
+        'type': undefined,
+        'side': side,
+        'price': trade['price'] / multiplier,
+        'fee': {
+          'currency': currency,
+          'cost': trade['fee'] / multiplier
+        },
+        'amount': trade['volume'] / multiplier,
+        'order': this.safeString(trade, 'orderId')
+      };
+    }
+  }, {
+    key: "parseMyTrades",
+    value: function parseMyTrades(trades) {
+      var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+      var since = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
+      var limit = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+      var result = [];
+
+      for (var i = 0; i < trades.length; i++) {
+        var trade = this.parseMyTrade(trades[i], market);
+        result.push(trade);
+      }
+
+      return result;
+    }
+  }, {
+    key: "parseOrder",
+    value: function parseOrder(order) {
+      var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+      var multiplier = 100000000;
+      var side = order['orderSide'] == 'Bid' ? 'buy' : 'sell';
+      var type = order['ordertype'] == 'Limit' ? 'limit' : 'market';
+      var timestamp = order['creationTime'];
+
+      if (!market) {
+        market = this.market(order['instrument'] + "/" + order['currency']);
+      }
+
+      var status = 'open';
+
+      if (order['status'] == 'Failed' || order['status'] == 'Cancelled' || order['status'] == 'Partially Cancelled' || order['status'] == 'Error') {
+        status = 'canceled';
+      } else if (order['status'] == "Fully Matched" || order['status'] == "Partially Matched") {
+        status = 'closed';
+      }
+
+      var price = this.safeFloat(order, 'price') / multiplier;
+      var amount = this.safeFloat(order, 'volume') / multiplier;
+      var remaining = this.safeFloat(order, 'openVolume', 0.0) / multiplier;
+      var filled = amount - remaining;
+      var cost = price * amount;
+      var trades = this.parseMyTrades(order['trades'], market);
+      var result = {
+        'info': order,
+        'id': order['id'].toString(),
+        'timestamp': timestamp,
+        'datetime': this.iso8601(timestamp),
+        'symbol': market['symbol'],
+        'type': type,
+        'side': side,
+        'price': price,
+        'cost': cost,
+        'amount': amount,
+        'filled': filled,
+        'remaining': remaining,
+        'status': status,
+        'trades': trades,
+        'fee': undefined
+      };
+      return result;
+    }
+  }, {
+    key: "fetchOrder",
+    value: function () {
+      var _fetchOrder = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee8(id) {
+        var symbol,
+            params,
+            ids,
+            response,
+            numOrders,
+            order,
+            _args8 = arguments;
+        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+          while (1) {
+            switch (_context8.prev = _context8.next) {
+              case 0:
+                symbol = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : undefined;
+                params = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : {};
+                _context8.next = 4;
+                return this.loadMarkets();
+
+              case 4:
+                ids = [parseInt(id)];
+                _context8.next = 7;
+                return this.privatePostOrderDetail(this.extend({
+                  'orderIds': ids
+                }, params));
+
+              case 7:
+                response = _context8.sent;
+                numOrders = response['orders'].length;
+
+                if (!(numOrders < 1)) {
+                  _context8.next = 11;
+                  break;
+                }
+
+                throw new OrderNotFound(this.id + ' No matching order found: ' + id);
+
+              case 11:
+                order = response['orders'][0];
+                return _context8.abrupt("return", this.parseOrder(order));
+
+              case 13:
+              case "end":
+                return _context8.stop();
+            }
+          }
+        }, _callee8, this);
+      }));
+
+      return function fetchOrder(_x10) {
+        return _fetchOrder.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "prepareHistoryRequest",
+    value: function () {
+      var _prepareHistoryRequest = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee9(market) {
+        var since,
+            limit,
+            request,
+            _args9 = arguments;
+        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
+          while (1) {
+            switch (_context9.prev = _context9.next) {
+              case 0:
+                since = _args9.length > 1 && _args9[1] !== undefined ? _args9[1] : undefined;
+                limit = _args9.length > 2 && _args9[2] !== undefined ? _args9[2] : undefined;
+                request = this.ordered({
+                  'currency': market['quote'],
+                  'instrument': market['base']
+                });
+                if (typeof limit !== 'undefined') request['limit'] = limit;else request['limit'] = 100;
+                if (typeof since !== 'undefined') request['since'] = since;else request['since'] = 0;
+                return _context9.abrupt("return", request);
+
+              case 6:
+              case "end":
+                return _context9.stop();
+            }
+          }
+        }, _callee9, this);
+      }));
+
+      return function prepareHistoryRequest(_x11) {
+        return _prepareHistoryRequest.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "fetchOrders",
+    value: function () {
+      var _fetchOrders = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee10() {
+        var symbol,
+            since,
+            limit,
+            params,
+            market,
+            request,
+            response,
+            _args10 = arguments;
+        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
+          while (1) {
+            switch (_context10.prev = _context10.next) {
+              case 0:
+                symbol = _args10.length > 0 && _args10[0] !== undefined ? _args10[0] : undefined;
+                since = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : undefined;
+                limit = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : undefined;
+                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
+
+                if (symbol) {
+                  _context10.next = 6;
+                  break;
+                }
+
+                throw new NotSupported(this.id + ': fetchOrders requires a `symbol` parameter.');
+
+              case 6:
+                _context10.next = 8;
+                return this.loadMarkets();
+
+              case 8:
+                market = this.market(symbol);
+                request = this.prepareHistoryRequest(market, since, limit);
+                _context10.next = 12;
+                return this.privatePostOrderHistory(this.extend(request, params));
+
+              case 12:
+                response = _context10.sent;
+                return _context10.abrupt("return", this.parseOrders(response['orders'], market));
+
+              case 14:
+              case "end":
+                return _context10.stop();
+            }
+          }
+        }, _callee10, this);
+      }));
+
+      return function fetchOrders() {
+        return _fetchOrders.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "fetchOpenOrders",
+    value: function () {
+      var _fetchOpenOrders = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee11() {
+        var symbol,
+            since,
+            limit,
+            params,
+            market,
+            request,
+            response,
+            _args11 = arguments;
+        return _regeneratorRuntime.wrap(function _callee11$(_context11) {
+          while (1) {
+            switch (_context11.prev = _context11.next) {
+              case 0:
+                symbol = _args11.length > 0 && _args11[0] !== undefined ? _args11[0] : undefined;
+                since = _args11.length > 1 && _args11[1] !== undefined ? _args11[1] : undefined;
+                limit = _args11.length > 2 && _args11[2] !== undefined ? _args11[2] : undefined;
+                params = _args11.length > 3 && _args11[3] !== undefined ? _args11[3] : {};
+
+                if (symbol) {
+                  _context11.next = 6;
+                  break;
+                }
+
+                throw new NotSupported(this.id + ': fetchOpenOrders requires a `symbol` parameter.');
+
+              case 6:
+                _context11.next = 8;
+                return this.loadMarkets();
+
+              case 8:
+                market = this.market(symbol);
+                request = this.prepareHistoryRequest(market, since, limit);
+                _context11.next = 12;
+                return this.privatePostOrderOpen(this.extend(request, params));
+
+              case 12:
+                response = _context11.sent;
+                return _context11.abrupt("return", this.parseOrders(response['orders'], market));
+
+              case 14:
+              case "end":
+                return _context11.stop();
+            }
+          }
+        }, _callee11, this);
+      }));
+
+      return function fetchOpenOrders() {
+        return _fetchOpenOrders.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "fetchClosedOrders",
+    value: function () {
+      var _fetchClosedOrders = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee12() {
+        var symbol,
+            since,
+            limit,
+            params,
+            orders,
+            _args12 = arguments;
+        return _regeneratorRuntime.wrap(function _callee12$(_context12) {
+          while (1) {
+            switch (_context12.prev = _context12.next) {
+              case 0:
+                symbol = _args12.length > 0 && _args12[0] !== undefined ? _args12[0] : undefined;
+                since = _args12.length > 1 && _args12[1] !== undefined ? _args12[1] : undefined;
+                limit = _args12.length > 2 && _args12[2] !== undefined ? _args12[2] : undefined;
+                params = _args12.length > 3 && _args12[3] !== undefined ? _args12[3] : {};
+                _context12.next = 6;
+                return this.fetchOrders(symbol, since, limit, params);
+
+              case 6:
+                orders = _context12.sent;
+                return _context12.abrupt("return", this.filterBy(orders, 'status', 'closed'));
+
+              case 8:
+              case "end":
+                return _context12.stop();
+            }
+          }
+        }, _callee12, this);
+      }));
+
+      return function fetchClosedOrders() {
+        return _fetchClosedOrders.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "fetchMyTrades",
+    value: function () {
+      var _fetchMyTrades = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee13() {
+        var symbol,
+            since,
+            limit,
+            params,
+            market,
+            request,
+            response,
+            _args13 = arguments;
+        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
+          while (1) {
+            switch (_context13.prev = _context13.next) {
+              case 0:
+                symbol = _args13.length > 0 && _args13[0] !== undefined ? _args13[0] : undefined;
+                since = _args13.length > 1 && _args13[1] !== undefined ? _args13[1] : undefined;
+                limit = _args13.length > 2 && _args13[2] !== undefined ? _args13[2] : undefined;
+                params = _args13.length > 3 && _args13[3] !== undefined ? _args13[3] : {};
+
+                if (symbol) {
+                  _context13.next = 6;
+                  break;
+                }
+
+                throw new NotSupported(this.id + ': fetchMyTrades requires a `symbol` parameter.');
+
+              case 6:
+                _context13.next = 8;
+                return this.loadMarkets();
+
+              case 8:
+                market = this.market(symbol);
+                request = this.prepareHistoryRequest(market, since, limit);
+                _context13.next = 12;
+                return this.privatePostOrderTradeHistory(this.extend(request, params));
+
+              case 12:
+                response = _context13.sent;
+                return _context13.abrupt("return", this.parseMyTrades(response['trades'], market));
+
+              case 14:
+              case "end":
+                return _context13.stop();
+            }
+          }
+        }, _callee13, this);
+      }));
+
+      return function fetchMyTrades() {
+        return _fetchMyTrades.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "nonce",
     value: function nonce() {
       return this.milliseconds();
@@ -540,7 +940,6 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var uri = '/' + this.implodeParams(path, params);
       var url = this.urls['api'] + uri;
-      var query = this.omit(params, this.extractParams(path));
 
       if (api == 'public') {
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
@@ -555,7 +954,7 @@ function (_Exchange) {
         };
 
         if (method == 'POST') {
-          body = this.urlencode(query);
+          body = this.json(params);
           auth += body;
         }
 
@@ -576,61 +975,61 @@ function (_Exchange) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee8(path) {
+      _regeneratorRuntime.mark(function _callee14(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args8 = arguments;
-        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+            _args14 = arguments;
+        return _regeneratorRuntime.wrap(function _callee14$(_context14) {
           while (1) {
-            switch (_context8.prev = _context8.next) {
+            switch (_context14.prev = _context14.next) {
               case 0:
-                api = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : 'public';
-                method = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : 'GET';
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                headers = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : undefined;
-                body = _args8.length > 5 && _args8[5] !== undefined ? _args8[5] : undefined;
-                _context8.next = 7;
+                api = _args14.length > 1 && _args14[1] !== undefined ? _args14[1] : 'public';
+                method = _args14.length > 2 && _args14[2] !== undefined ? _args14[2] : 'GET';
+                params = _args14.length > 3 && _args14[3] !== undefined ? _args14[3] : {};
+                headers = _args14.length > 4 && _args14[4] !== undefined ? _args14[4] : undefined;
+                body = _args14.length > 5 && _args14[5] !== undefined ? _args14[5] : undefined;
+                _context14.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context8.sent;
+                response = _context14.sent;
 
                 if (!(api == 'private')) {
-                  _context8.next = 13;
+                  _context14.next = 13;
                   break;
                 }
 
                 if (!('success' in response)) {
-                  _context8.next = 12;
+                  _context14.next = 12;
                   break;
                 }
 
                 if (response['success']) {
-                  _context8.next = 12;
+                  _context14.next = 12;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + this.json(response));
 
               case 12:
-                return _context8.abrupt("return", response);
+                return _context14.abrupt("return", response);
 
               case 13:
-                return _context8.abrupt("return", response);
+                return _context14.abrupt("return", response);
 
               case 14:
               case "end":
-                return _context8.stop();
+                return _context14.stop();
             }
           }
-        }, _callee8, this);
+        }, _callee14, this);
       }));
 
-      return function request(_x10) {
+      return function request(_x12) {
         return _request.apply(this, arguments);
       };
     }()

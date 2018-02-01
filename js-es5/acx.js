@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -23,7 +23,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
+    InsufficientFunds = _require.InsufficientFunds,
     OrderNotFound = _require.OrderNotFound; //  ---------------------------------------------------------------------------
 
 
@@ -47,10 +47,12 @@ function (_Exchange) {
         'countries': 'AU',
         'rateLimit': 1000,
         'version': 'v2',
-        'hasCORS': true,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': true,
+          'fetchTickers': true,
+          'fetchOHLCV': true,
+          'withdraw': true
+        },
         'timeframes': {
           '1m': '1',
           '5m': '5',
@@ -104,8 +106,8 @@ function (_Exchange) {
           'trading': {
             'tierBased': false,
             'percentage': true,
-            'maker': 0.0,
-            'taker': 0.0
+            'maker': 0.2 / 100,
+            'taker': 0.2 / 100
           },
           'funding': {
             'tierBased': false,
@@ -113,6 +115,10 @@ function (_Exchange) {
             'withdraw': 0.0 // There is only 1% fee on withdrawals to your bank account.
 
           }
+        },
+        'exceptions': {
+          2002: InsufficientFunds,
+          2003: OrderNotFound
         }
       });
     }
@@ -321,10 +327,8 @@ function (_Exchange) {
             symbol,
             base,
             quote,
-            _symbol,
             ticker,
             _args4 = arguments;
-
         return _regeneratorRuntime.wrap(function _callee4$(_context4) {
           while (1) {
             switch (_context4.prev = _context4.next) {
@@ -358,7 +362,7 @@ function (_Exchange) {
                     quote = quote.toUpperCase();
                     base = this.commonCurrencyCode(base);
                     quote = this.commonCurrencyCode(quote);
-                    _symbol = base + '/' + quote;
+                    symbol = base + '/' + quote;
                   }
 
                   ticker = tickers[id];
@@ -424,18 +428,18 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var timestamp = trade['timestamp'] * 1000;
-      var side = trade['type'] == 'bid' ? 'buy' : 'sell';
+      var timestamp = this.parse8601(trade['created_at']);
       return {
-        'info': trade,
-        'id': trade['tid'].toString(),
+        'id': trade['id'].toString(),
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'symbol': market['symbol'],
         'type': undefined,
-        'side': side,
-        'price': trade['price'],
-        'amount': trade['amount']
+        'side': undefined,
+        'price': this.safeFloat(trade, 'price'),
+        'amount': this.safeFloat(trade, 'volume'),
+        'cost': this.safeFloat(trade, 'funds'),
+        'info': trade
       };
     }
   }, {
@@ -469,7 +473,7 @@ function (_Exchange) {
 
               case 8:
                 response = _context6.sent;
-                return _context6.abrupt("return", response);
+                return _context6.abrupt("return", this.parseTrades(response, market, since, limit));
 
               case 10:
               case "end":
@@ -526,7 +530,7 @@ function (_Exchange) {
                   'period': this.timeframes[timeframe],
                   'limit': limit
                 };
-                if (since) request['timestamp'] = since;
+                if (typeof since !== 'undefined') request['timestamp'] = since;
                 _context7.next = 12;
                 return this.publicGetK(this.extend(request, params));
 
@@ -563,16 +567,16 @@ function (_Exchange) {
       var state = order['state'];
       var status = undefined;
 
-      if (state == 'done') {
+      if (state === 'done') {
         status = 'closed';
-      } else if (state == 'wait') {
+      } else if (state === 'wait') {
         status = 'open';
-      } else if (state == 'cancel') {
+      } else if (state === 'cancel') {
         status = 'canceled';
       }
 
       return {
-        'id': order['id'],
+        'id': order['id'].toString(),
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'status': status,
@@ -617,7 +621,7 @@ function (_Exchange) {
                   'ord_type': type
                 };
 
-                if (type == 'limit') {
+                if (type === 'limit') {
                   order['price'] = price.toString();
                 }
 
@@ -651,6 +655,7 @@ function (_Exchange) {
             params,
             result,
             order,
+            status,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
@@ -670,18 +675,19 @@ function (_Exchange) {
               case 6:
                 result = _context9.sent;
                 order = this.parseOrder(result);
+                status = order['status'];
 
-                if (!(order['status'] == 'closed')) {
-                  _context9.next = 10;
+                if (!(status === 'closed' || status === 'canceled')) {
+                  _context9.next = 11;
                   break;
                 }
 
-                throw new OrderNotFound(this.id + ' ' + result);
-
-              case 10:
-                return _context9.abrupt("return", order);
+                throw new OrderNotFound(this.id + ' ' + this.json(order));
 
               case 11:
+                return _context9.abrupt("return", order);
+
+              case 12:
               case "end":
                 return _context9.stop();
             }
@@ -699,33 +705,35 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee10(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             result,
             _args10 = arguments;
         return _regeneratorRuntime.wrap(function _callee10$(_context10) {
           while (1) {
             switch (_context10.prev = _context10.next) {
               case 0:
-                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
-                _context10.next = 3;
+                tag = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : undefined;
+                params = _args10.length > 4 && _args10[4] !== undefined ? _args10[4] : {};
+                _context10.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context10.next = 5;
+              case 4:
+                _context10.next = 6;
                 return this.privatePostWithdraw(this.extend({
                   'currency': currency.toLowerCase(),
                   'sum': amount,
                   'address': address
                 }, params));
 
-              case 5:
+              case 6:
                 result = _context10.sent;
                 return _context10.abrupt("return", {
                   'info': result,
                   'id': undefined
                 });
 
-              case 7:
+              case 8:
               case "end":
                 return _context10.stop();
             }
@@ -779,7 +787,7 @@ function (_Exchange) {
       var query = this.omit(params, this.extractParams(path));
       var url = this.urls['api'] + request;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) {
           url += '?' + this.urlencode(query);
         }
@@ -796,7 +804,7 @@ function (_Exchange) {
         var signature = this.hmac(this.encode(auth), this.encode(this.secret));
         var suffix = _query + '&signature=' + signature;
 
-        if (method == 'GET') {
+        if (method === 'GET') {
           url += '?' + suffix;
         } else {
           body = suffix;
@@ -814,55 +822,21 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee11(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args11 = arguments;
-        return _regeneratorRuntime.wrap(function _callee11$(_context11) {
-          while (1) {
-            switch (_context11.prev = _context11.next) {
-              case 0:
-                api = _args11.length > 1 && _args11[1] !== undefined ? _args11[1] : 'public';
-                method = _args11.length > 2 && _args11[2] !== undefined ? _args11[2] : 'GET';
-                params = _args11.length > 3 && _args11[3] !== undefined ? _args11[3] : {};
-                headers = _args11.length > 4 && _args11[4] !== undefined ? _args11[4] : undefined;
-                body = _args11.length > 5 && _args11[5] !== undefined ? _args11[5] : undefined;
-                _context11.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      if (code === 400) {
+        var response = JSON.parse(body);
+        var error = this.safeValue(response, 'error');
+        var errorCode = this.safeString(error, 'code');
+        var feedback = this.id + ' ' + this.json(response);
+        var exceptions = this.exceptions;
 
-              case 7:
-                response = _context11.sent;
+        if (errorCode in exceptions) {
+          throw new exceptions[errorCode](feedback);
+        } // fallback to default error handler
 
-                if (!('error' in response)) {
-                  _context11.next = 10;
-                  break;
-                }
-
-                throw new ExchangeError(this.id + ' ' + this.json(response));
-
-              case 10:
-                return _context11.abrupt("return", response);
-
-              case 11:
-              case "end":
-                return _context11.stop();
-            }
-          }
-        }, _callee11, this);
-      }));
-
-      return function request(_x13) {
-        return _request.apply(this, arguments);
-      };
-    }()
+      }
+    }
   }]);
 
   return acx;

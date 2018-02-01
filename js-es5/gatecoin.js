@@ -46,9 +46,11 @@ function (_Exchange) {
         'countries': 'HK',
         // Hong Kong
         'comment': 'a regulated/licensed exchange',
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true,
+          'fetchOHLCV': true
+        },
         'timeframes': {
           '1m': '1m',
           '15m': '15m',
@@ -590,7 +592,7 @@ function (_Exchange) {
                   'CurrencyPair': market['id'],
                   'Timeframe': this.timeframes[timeframe]
                 };
-                if (limit) request['Count'] = limit;
+                if (typeof limit !== 'undefined') request['Count'] = limit;
                 request = this.extend(request, params);
                 _context7.next = 12;
                 return this.publicGetPublicTickerHistoryCurrencyPairTimeframe(request);
@@ -734,14 +736,15 @@ function (_Exchange) {
       } else {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
+        var nonceString = nonce.toString();
         var contentType = method == 'GET' ? '' : 'application/json';
-        var auth = method + url + contentType + nonce.toString();
+        var auth = method + url + contentType + nonceString;
         auth = auth.toLowerCase();
         var signature = this.hmac(this.encode(auth), this.encode(this.secret), 'sha256', 'base64');
         headers = {
           'API_PUBLIC_KEY': this.apiKey,
-          'API_REQUEST_SIGNATURE': signature,
-          'API_REQUEST_DATE': nonce
+          'API_REQUEST_SIGNATURE': this.decode(signature),
+          'API_REQUEST_DATE': nonceString
         };
 
         if (method != 'GET') {

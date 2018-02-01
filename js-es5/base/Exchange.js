@@ -1,4 +1,5 @@
-"use strict"; //-----------------------------------------------------------------------------
+"use strict";
+/*  ------------------------------------------------------------------------ */
 
 var _Promise = require("@babel/runtime/core-js/promise");
 
@@ -16,29 +17,40 @@ var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
 var _slicedToArray = require("@babel/runtime/helpers/slicedToArray");
 
+var _Object$getOwnPropertyNames = require("@babel/runtime/core-js/object/get-own-property-names");
+
+var _getIterator = require("@babel/runtime/core-js/get-iterator");
+
+var _Object$getPrototypeOf = require("@babel/runtime/core-js/object/get-prototype-of");
+
 var _Object$assign = require("@babel/runtime/core-js/object/assign");
 
 var _classCallCheck = require("@babel/runtime/helpers/classCallCheck");
 
 var _createClass = require("@babel/runtime/helpers/createClass");
 
-var isNode = typeof window === 'undefined',
-    functions = require('./functions'),
-    throttle = require('./throttle'),
-    fetch = require('fetch-ponyfill')().fetch,
+var functions = require('./functions'),
     Market = require('./Market');
 
-var deepExtend = functions.deepExtend,
+var isNode = functions.isNode,
+    keys = functions.keys,
+    values = functions.values,
+    deepExtend = functions.deepExtend,
     extend = functions.extend,
-    sleep = functions.sleep,
-    timeout = functions.timeout,
     flatten = functions.flatten,
     indexBy = functions.indexBy,
     sortBy = functions.sortBy,
     groupBy = functions.groupBy,
     aggregate = functions.aggregate,
     uuid = functions.uuid,
-    precisionFromString = functions.precisionFromString;
+    unCamelCase = functions.unCamelCase,
+    precisionFromString = functions.precisionFromString,
+    throttle = functions.throttle,
+    capitalize = functions.capitalize,
+    now = functions.now,
+    sleep = functions.sleep,
+    timeout = functions.timeout,
+    TimedOut = functions.TimedOut;
 
 var _require = require('./errors'),
     ExchangeError = _require.ExchangeError,
@@ -46,11 +58,12 @@ var _require = require('./errors'),
     AuthenticationError = _require.AuthenticationError,
     DDoSProtection = _require.DDoSProtection,
     RequestTimeout = _require.RequestTimeout,
-    ExchangeNotAvailable = _require.ExchangeNotAvailable; // stub until we get a better solution for Webpack and React
-// const journal = isNode && require ('./journal')
+    ExchangeNotAvailable = _require.ExchangeNotAvailable;
 
+var defaultFetch = isNode ? require('fetch-ponyfill')().fetch : fetch;
+var journal = undefined; // isNode && require ('./journal') // stub until we get a better solution for Webpack and React
 
-var journal = undefined;
+/*  ------------------------------------------------------------------------ */
 
 module.exports =
 /*#__PURE__*/
@@ -69,8 +82,84 @@ function () {
   }, {
     key: "describe",
     value: function describe() {
-      return {};
-    }
+      return {
+        'id': undefined,
+        'name': undefined,
+        'countries': undefined,
+        'enableRateLimit': false,
+        'rateLimit': 2000,
+        // milliseconds = seconds * 1000
+        'has': {
+          'CORS': false,
+          'publicAPI': true,
+          'privateAPI': true,
+          'cancelOrder': true,
+          'createDepositAddress': false,
+          'createOrder': true,
+          'deposit': false,
+          'fetchBalance': true,
+          'fetchClosedOrders': false,
+          'fetchCurrencies': false,
+          'fetchDepositAddress': false,
+          'fetchMarkets': true,
+          'fetchMyTrades': false,
+          'fetchOHLCV': false,
+          'fetchOpenOrders': false,
+          'fetchOrder': false,
+          'fetchOrderBook': true,
+          'fetchOrders': false,
+          'fetchTicker': true,
+          'fetchTickers': false,
+          'fetchBidsAsks': false,
+          'fetchTrades': true,
+          'withdraw': false
+        },
+        'urls': {
+          'logo': undefined,
+          'api': undefined,
+          'www': undefined,
+          'doc': undefined,
+          'fees': undefined
+        },
+        'api': undefined,
+        'requiredCredentials': {
+          'apiKey': true,
+          'secret': true,
+          'uid': false,
+          'login': false,
+          'password': false
+        },
+        'markets': undefined,
+        // to be filled manually or by fetchMarkets
+        'currencies': {},
+        // to be filled manually or by fetchMarkets
+        'timeframes': undefined,
+        // redefine if the exchange has.fetchOHLCV
+        'fees': {
+          'trading': {
+            'tierBased': undefined,
+            'percentage': undefined,
+            'taker': undefined,
+            'maker': undefined
+          },
+          'funding': {
+            'tierBased': undefined,
+            'percentage': undefined,
+            'withdraw': undefined,
+            'deposit': undefined
+          }
+        },
+        'parseJsonResponse': true,
+        // whether a reply is required to be in JSON or not
+        'skipJsonOnStatusCodes': [],
+        // array of http status codes which override requirement for JSON response
+        'exceptions': undefined,
+        'parseBalanceFromOpenOrders': false // some exchanges return balance updates from order API endpoints
+        // return
+
+      };
+    } // describe ()
+
   }]);
 
   function Exchange() {
@@ -89,14 +178,15 @@ function () {
       }
     });
 
-    if (isNode) this.nodeVersion = process.version.match(/\d+\.\d+.\d+/)[0]; // this.initRestRateLimiter ()
-    // if (isNode) {
+    if (isNode) this.nodeVersion = process.version.match(/\d+\.\d+.\d+/)[0]; // if (isNode) {
     //     this.userAgent = {
     //         'User-Agent': 'ccxt/' + Exchange.ccxtVersion +
     //             ' (+https://github.com/ccxt/ccxt)' +
     //             ' Node.js/' + this.nodeVersion + ' (JavaScript)'
     //     }
     // }
+
+    this.options = {}; // exchange-specific options, if any
 
     this.userAgents = {
       'chrome': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36',
@@ -105,36 +195,31 @@ function () {
     this.headers = {}; // prepended to URL, like https://proxy.com/https://exchange.com/api...
 
     this.proxy = '';
+    this.origin = '*'; // CORS origin
 
     this.iso8601 = function (timestamp) {
       return new Date(timestamp).toISOString();
     };
 
     this.parse8601 = function (x) {
-      return Date.parse(x.indexOf('+') >= 0 || x.slice(-1) == 'Z' ? x : x + 'Z');
+      return Date.parse(x.indexOf('+') >= 0 || x.slice(-1) === 'Z' ? x : x + 'Z');
     };
 
-    this.milliseconds = Date.now;
+    this.milliseconds = now;
 
     this.microseconds = function () {
-      return Math.floor(_this.milliseconds() * 1000);
-    };
+      return now() * 1000;
+    }; // TODO: utilize performance.now for that purpose
+
 
     this.seconds = function () {
-      return Math.floor(_this.milliseconds() / 1000);
+      return Math.floor(now() / 1000);
     };
 
-    this.id = undefined; // rate limiter settings
-
-    this.enableRateLimit = false;
-    this.rateLimit = 2000; // milliseconds = seconds * 1000
-
-    this.parseJsonResponse = true; // whether a reply is required to be in JSON or not
-
     this.substituteCommonCurrencyCodes = true; // reserved
+    // do not delete this line, it is needed for users to be able to define their own fetchImplementation
 
-    this.parseBalanceFromOpenOrders = false; // some exchanges return balance updates from order API endpoints
-
+    this.fetchImplementation = defaultFetch;
     this.timeout = 10000; // milliseconds
 
     this.verbose = false;
@@ -143,120 +228,57 @@ function () {
     this.userAgent = undefined;
     this.twofa = false; // two-factor authentication (2FA)
 
-    this.timeframes = undefined;
-    this.hasPublicAPI = true;
-    this.hasPrivateAPI = true;
-    this.hasCORS = false;
-    this.hasDeposit = false;
-    this.hasFetchBalance = true;
-    this.hasFetchClosedOrders = false;
-    this.hasFetchCurrencies = false;
-    this.hasFetchMyTrades = false;
-    this.hasFetchOHLCV = false;
-    this.hasFetchOpenOrders = false;
-    this.hasFetchOrder = false;
-    this.hasFetchOrderBook = true;
-    this.hasFetchOrders = false;
-    this.hasFetchTicker = true;
-    this.hasFetchTickers = false;
-    this.hasFetchTrades = true;
-    this.hasWithdraw = false;
-    this.hasCreateOrder = this.hasPrivateAPI;
-    this.hasCancelOrder = this.hasPrivateAPI;
-    this.requiredCredentials = {
-      'apiKey': true,
-      'secret': true,
-      'uid': false,
-      'login': false,
-      'password': false
-    };
+    this.apiKey = undefined;
+    this.secret = undefined;
+    this.uid = undefined;
+    this.login = undefined;
+    this.password = undefined;
     this.balance = {};
     this.orderbooks = {};
     this.tickers = {};
-    this.fees = {};
     this.orders = {};
     this.trades = {};
-    this.currencies = {};
     this.last_http_response = undefined;
     this.last_json_response = undefined;
 
     this.arrayConcat = function (a, b) {
       return a.concat(b);
-    }; // TODO: generate
-
-
-    this.market_id = this.marketId;
-    this.market_ids = this.marketIds;
-    this.array_concat = this.arrayConcat;
-    this.implode_params = this.implodeParams;
-    this.extract_params = this.extractParams;
-    this.fetch_balance = this.fetchBalance;
-    this.fetch_free_balance = this.fetchFreeBalance;
-    this.fetch_used_balance = this.fetchUsedBalance;
-    this.fetch_total_balance = this.fetchTotalBalance;
-    this.fetch_l2_order_book = this.fetchL2OrderBook;
-    this.fetch_order_book = this.fetchOrderBook;
-    this.fetch_tickers = this.fetchTickers;
-    this.fetch_ticker = this.fetchTicker;
-    this.fetch_trades = this.fetchTrades;
-    this.fetch_order = this.fetchOrder;
-    this.fetch_orders = this.fetchOrders;
-    this.fetch_open_orders = this.fetchOpenOrders;
-    this.fetch_closed_orders = this.fetchClosedOrders;
-    this.fetch_order_status = this.fetchOrderStatus;
-    this.fetch_markets = this.fetchMarkets;
-    this.load_markets = this.loadMarkets;
-    this.set_markets = this.setMarkets;
-    this.parse_balance = this.parseBalance;
-    this.parse_bid_ask = this.parseBidAsk;
-    this.parse_bids_asks = this.parseBidsAsks;
-    this.parse_order_book = this.parseOrderBook;
-    this.parse_trades = this.parseTrades;
-    this.parse_orders = this.parseOrders;
-    this.parse_ohlcv = this.parseOHLCV;
-    this.parse_ohlcvs = this.parseOHLCVs;
-    this.edit_limit_buy_order = this.editLimitBuyOrder;
-    this.edit_limit_sell_order = this.editLimitSellOrder;
-    this.edit_limit_order = this.editLimitOrder;
-    this.edit_order = this.editOrder;
-    this.create_limit_buy_order = this.createLimitBuyOrder;
-    this.create_limit_sell_order = this.createLimitSellOrder;
-    this.create_market_buy_order = this.createMarketBuyOrder;
-    this.create_market_sell_order = this.createMarketSellOrder;
-    this.create_order = this.createOrder;
-    this.calculate_fee = this.calculateFee;
-    this.common_currency_code = this.commonCurrencyCode;
-    this.price_to_precision = this.priceToPrecision;
-    this.amount_to_precision = this.amountToPrecision;
-    this.fee_to_precision = this.feeToPrecision;
-    this.cost_to_precision = this.costToPrecision;
-    this.precisionFromString = precisionFromString;
-    this.precision_from_string = precisionFromString;
-    this.truncate = functions.truncate;
-    this.uuid = uuid; // API methods metainfo
-
-    this.has = {
-      'cancelOrder': this.hasPrivateAPI,
-      'createDepositAddress': false,
-      'createOrder': this.hasPrivateAPI,
-      'deposit': false,
-      'fetchBalance': this.hasPrivateAPI,
-      'fetchClosedOrders': false,
-      'fetchCurrencies': false,
-      'fetchDepositAddress': false,
-      'fetchMarkets': true,
-      'fetchMyTrades': false,
-      'fetchOHLCV': false,
-      'fetchOpenOrders': false,
-      'fetchOrder': false,
-      'fetchOrderBook': true,
-      'fetchOrders': false,
-      'fetchTicker': true,
-      'fetchTickers': false,
-      'fetchTrades': true,
-      'withdraw': false // merge configs
-
     };
+
+    var unCamelCaseProperties = function unCamelCaseProperties() {
+      var obj = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : _this;
+
+      if (obj !== null) {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          for (var _iterator = _getIterator(_Object$getOwnPropertyNames(obj)), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var _k = _step.value;
+            _this[unCamelCase(_k)] = _this[_k];
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return != null) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
+
+        unCamelCaseProperties(_Object$getPrototypeOf(obj));
+      }
+    };
+
+    unCamelCaseProperties(); // merge configs
+
     var config = deepExtend(this.describe(), userConfig); // merge to this
 
     var _arr = _Object$entries(config);
@@ -269,6 +291,11 @@ function () {
       var property = _ref2[0];
       var value = _ref2[1];
       this[property] = deepExtend(this[property], value);
+    } // generate old metainfo interface
+
+
+    for (var k in this.has) {
+      this['has' + capitalize(k)] = !!this.has[k]; // converts 'emulated' to true
     }
 
     if (this.api) this.defineRestApi(this.api, 'request');
@@ -321,6 +348,8 @@ function () {
   }, {
     key: "initRestRateLimiter",
     value: function initRestRateLimiter() {
+      var fetchImplementation = this.fetchImplementation;
+      if (this.rateLimit === undefined) throw new Error(this.id + '.rateLimit property is not configured');
       this.tokenBucket = this.extend({
         refillRate: 1 / this.rateLimit,
         delay: 1,
@@ -336,22 +365,20 @@ function () {
         var method = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'GET';
         var headers = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
         var body = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-        var promise = fetch(url, {
-          'method': method,
-          'headers': headers,
-          'body': body,
+        var promise = fetchImplementation(url, {
+          method: method,
+          headers: headers,
+          body: body,
           'agent': this.tunnelAgent || null,
           timeout: this.timeout
         }).catch(function (e) {
           if (isNode) throw new ExchangeNotAvailable([_this3.id, method, url, e.type, e.message].join(' '));
           throw e; // rethrow all unknown errors
         }).then(function (response) {
-          return _this3.handleRestErrors(response, url, method, headers, body);
-        }).then(function (response) {
           return _this3.handleRestResponse(response, url, method, headers, body);
         });
         return timeout(this.timeout, promise).catch(function (e) {
-          if (e instanceof RequestTimeout) throw new RequestTimeout(_this3.id + ' ' + method + ' ' + url + ' ' + e.message + ' (' + _this3.timeout + ' ms)');
+          if (e instanceof TimedOut) throw new RequestTimeout(_this3.id + ' ' + method + ' ' + url + ' request timed out (' + _this3.timeout + ' ms)');
           throw e;
         });
       };
@@ -368,11 +395,11 @@ function () {
 
         for (var _i3 = 0; _i3 < _arr3.length; _i3++) {
           var httpMethod = _arr3[_i3];
-          var urls = api[type][httpMethod];
+          var paths = api[type][httpMethod];
 
           var _loop2 = function _loop2(i) {
-            var url = urls[i].trim();
-            var splitPath = url.split(/[^a-zA-Z0-9]/);
+            var path = paths[i].trim();
+            var splitPath = path.split(/[^a-zA-Z0-9]/);
             var uppercaseMethod = httpMethod.toUpperCase();
             var lowercaseMethod = httpMethod.toLowerCase();
 
@@ -384,8 +411,6 @@ function () {
             }).filter(function (x) {
               return x.length > 0;
             }).join('_');
-            if (camelcaseSuffix.indexOf(camelcaseMethod) === 0) camelcaseSuffix = camelcaseSuffix.slice(camelcaseMethod.length);
-            if (underscoreSuffix.indexOf(lowercaseMethod) === 0) underscoreSuffix = underscoreSuffix.slice(lowercaseMethod.length);
 
             var camelcase = type + camelcaseMethod + _this4.capitalize(camelcaseSuffix);
 
@@ -409,7 +434,7 @@ function () {
                   while (1) {
                     switch (_context.prev = _context.next) {
                       case 0:
-                        return _context.abrupt("return", _this4[methodName](url, type, uppercaseMethod, params || {}));
+                        return _context.abrupt("return", _this4[methodName](path, type, uppercaseMethod, params || {}));
 
                       case 1:
                       case "end":
@@ -428,7 +453,7 @@ function () {
             _this4[underscore] = partial;
           };
 
-          for (var i = 0; i < urls.length; i++) {
+          for (var i = 0; i < paths.length; i++) {
             _loop2(i);
           }
         }
@@ -450,25 +475,25 @@ function () {
       var body = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
 
       if (isNode && this.userAgent) {
-        if (typeof this.userAgent == 'string') headers = extend({
+        if (typeof this.userAgent === 'string') headers = extend({
           'User-Agent': this.userAgent
-        }, headers);else if (_typeof(this.userAgent) == 'object' && 'User-Agent' in this.userAgent) headers = extend(this.userAgent, headers);
+        }, headers);else if (_typeof(this.userAgent) === 'object' && 'User-Agent' in this.userAgent) headers = extend(this.userAgent, headers);
       }
 
-      if (typeof this.proxy == 'function') {
+      if (typeof this.proxy === 'function') {
         url = this.proxy(url);
-        headers = extend({
-          'Origin': '*'
+        if (isNode) headers = extend({
+          'Origin': this.origin
         }, headers);
-      } else if (typeof this.proxy == 'string') {
-        if (this.proxy.length) headers = extend({
-          'Origin': '*'
+      } else if (typeof this.proxy === 'string') {
+        if (this.proxy.length) if (isNode) headers = extend({
+          'Origin': this.origin
         }, headers);
         url = this.proxy + url;
       }
 
       headers = extend(this.headers, headers);
-      if (this.verbose) console.log(this.id, method, url, "\nRequest:\n", headers, body);
+      if (this.verbose) console.log("fetch:\n", this.id, method, url, "\nRequest:\n", headers, "\n", body, "\n");
       return this.executeRestRequest(url, method, headers, body);
     }
   }, {
@@ -477,7 +502,7 @@ function () {
       var _fetch = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(path) {
-        var api,
+        var type,
             method,
             params,
             headers,
@@ -488,7 +513,7 @@ function () {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                api = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : 'public';
+                type = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : 'public';
                 method = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : 'GET';
                 params = _args2.length > 3 && _args2[3] !== undefined ? _args2[3] : {};
                 headers = _args2.length > 4 && _args2[4] !== undefined ? _args2[4] : undefined;
@@ -503,7 +528,7 @@ function () {
                 return this.throttle();
 
               case 8:
-                request = this.sign(path, api, method, params, headers, body);
+                request = this.sign(path, type, method, params, headers, body);
                 return _context2.abrupt("return", this.fetch(request.url, request.method, request.headers, request.body));
 
               case 10:
@@ -521,34 +546,55 @@ function () {
   }, {
     key: "request",
     value: function request(path) {
-      var api = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'public';
+      var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'public';
       var method = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'GET';
       var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
-      return this.fetch2(path, api, method, params, headers, body);
+      return this.fetch2(path, type, method, params, headers, body);
+    }
+  }, {
+    key: "parseJson",
+    value: function parseJson(responseBody, url) {
+      var method = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'GET';
+
+      try {
+        return responseBody.length > 0 ? JSON.parse(responseBody) : {}; // empty object for empty body
+      } catch (e) {
+        var maintenance = responseBody.match(/offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing/i);
+        var ddosProtection = responseBody.match(/cloudflare|incapsula|overload/i);
+
+        if (e instanceof SyntaxError) {
+          var error = ExchangeNotAvailable;
+          var details = 'not accessible from this location at the moment';
+          if (maintenance) details = 'offline, on maintenance or unreachable from this location at the moment';
+          if (ddosProtection) error = DDoSProtection;
+          throw new error([this.id, method, url, details].join(' '));
+        }
+
+        if (this.verbose) console.log('parseJson:\n', this.id, method, url, 'error', e, "response body:\n'" + responseBody + "'\n");
+        throw e;
+      }
     }
   }, {
     key: "handleErrors",
-    value: function handleErrors(statusCode, statusText, url, method, headers, body) {// override me
+    value: function handleErrors(statusCode, statusText, url, method, requestHeaders, responseBody, json) {// override me
     }
   }, {
     key: "defaultErrorHandler",
-    value: function defaultErrorHandler(code, reason, url, method, headers, body) {
-      if (this.verbose) console.log(this.id, method, url, code, reason, body ? "\nResponse:\n" + body : '');
-      if (code >= 200 && code <= 300) return body;
+    value: function defaultErrorHandler(code, reason, url, method, responseBody) {
+      if (code >= 200 && code <= 299) return;
       var error = undefined;
-      this.last_http_response = body;
-      var details = body;
-      var match = body.match('\<title\>([^<]+)');
+      var details = responseBody;
+      var match = responseBody.match(/<title>([^<]+)/i);
       if (match) details = match[1].trim();
 
-      if ([429].includes(code)) {
+      if ([418, 429].includes(code)) {
         error = DDoSProtection;
-      } else if ([404, 409, 422, 500, 501, 502, 520, 521, 522, 525].includes(code)) {
+      } else if ([404, 409, 500, 501, 502, 520, 521, 522, 525].includes(code)) {
         error = ExchangeNotAvailable;
       } else if ([400, 403, 405, 503, 530].includes(code)) {
-        var ddosProtection = body.match(/cloudflare|incapsula/i);
+        var ddosProtection = responseBody.match(/cloudflare|incapsula/i);
 
         if (ddosProtection) {
           error = DDoSProtection;
@@ -567,53 +613,29 @@ function () {
       throw new error([this.id, method, url, code, reason, details].join(' '));
     }
   }, {
-    key: "handleRestErrors",
-    value: function handleRestErrors(response, url) {
+    key: "handleRestResponse",
+    value: function handleRestResponse(response, url) {
       var _this5 = this;
 
       var method = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'GET';
-      var headers = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-      var body = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-      if (typeof response == 'string') return response;
-      return response.text().then(function (text) {
-        var args = [response.status, response.statusText, url, method, headers, text];
+      var requestHeaders = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+      var requestBody = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
+      return response.text().then(function (responseBody) {
+        var jsonRequired = _this5.parseJsonResponse && !_this5.skipJsonOnStatusCodes.includes(response.status);
+        var json = jsonRequired ? _this5.parseJson(responseBody, url, method) : undefined;
+        if (_this5.verbose) console.log("handleRestResponse:\n", _this5.id, method, url, response.status, response.statusText, "\nResponse:\n", requestHeaders, "\n", responseBody, "\n");
+        _this5.last_http_response = responseBody; // FIXME: for those classes that haven't switched to handleErrors yet
+
+        _this5.last_json_response = json; // FIXME: for those classes that haven't switched to handleErrors yet
+
+        var args = [response.status, response.statusText, url, method, requestHeaders, responseBody, json];
 
         _this5.handleErrors.apply(_this5, args);
 
-        return _this5.defaultErrorHandler.apply(_this5, args);
+        _this5.defaultErrorHandler(response.status, response.statusText, url, method, responseBody);
+
+        return jsonRequired ? json : responseBody;
       });
-    }
-  }, {
-    key: "handleRestResponse",
-    value: function handleRestResponse(response, url) {
-      var method = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'GET';
-      var headers = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-      var body = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-
-      try {
-        this.last_http_response = response;
-
-        if (this.parseJsonResponse) {
-          this.last_json_response = typeof response == 'string' && response.length > 1 ? JSON.parse(response) : response;
-          return this.last_json_response;
-        }
-
-        return response;
-      } catch (e) {
-        var maintenance = response.match(/offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing/i);
-        var ddosProtection = response.match(/cloudflare|incapsula|overload/i);
-
-        if (e instanceof SyntaxError) {
-          var error = ExchangeNotAvailable;
-          var details = 'not accessible from this location at the moment';
-          if (maintenance) details = 'offline, on maintenance or unreachable from this location at the moment';
-          if (ddosProtection) error = DDoSProtection;
-          throw new error([this.id, method, url, details].join(' '));
-        }
-
-        if (this.verbose) console.log(this.id, method, url, 'error', e, "response body:\n'" + response + "'");
-        throw e;
-      }
     }
   }, {
     key: "setMarkets",
@@ -669,6 +691,7 @@ function () {
         this.currencies = deepExtend(indexBy(sortedCurrencies, 'code'), this.currencies);
       }
 
+      this.currencies_by_id = indexBy(this.currencies, 'id');
       return this.markets;
     }
   }, {
@@ -736,6 +759,13 @@ function () {
         return _loadMarkets.apply(this, arguments);
       };
     }()
+  }, {
+    key: "fetchBidsAsks",
+    value: function fetchBidsAsks() {
+      var symbols = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : undefined;
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      throw new NotSupported(this.id + ' fetchBidsAsks not supported yet');
+    }
   }, {
     key: "fetchTickers",
     value: function fetchTickers() {
@@ -815,7 +845,7 @@ function () {
               case 0:
                 market = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : undefined;
                 _context4.next = 3;
-                return this.fetchOrder(id);
+                return this.fetchOrder(id, market);
 
               case 3:
                 order = _context4.sent;
@@ -846,22 +876,22 @@ function () {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
       if (!this.substituteCommonCurrencyCodes) return currency;
-      if (currency == 'XBT') return 'BTC';
-      if (currency == 'BCC') return 'BCH';
-      if (currency == 'DRK') return 'DASH';
+      if (currency === 'XBT') return 'BTC';
+      if (currency === 'BCC') return 'BCH';
+      if (currency === 'DRK') return 'DASH';
       return currency;
     }
   }, {
     key: "currency",
     value: function currency(code) {
-      if (typeof this.currencies == 'undefined') return new ExchangeError(this.id + ' currencies not loaded');
+      if (typeof this.currencies === 'undefined') return new ExchangeError(this.id + ' currencies not loaded');
       if (typeof code === 'string' && code in this.currencies) return this.currencies[code];
       throw new ExchangeError(this.id + ' does not have currency code ' + code);
     }
   }, {
     key: "market",
     value: function market(symbol) {
-      if (typeof this.markets == 'undefined') return new ExchangeError(this.id + ' markets not loaded');
+      if (typeof this.markets === 'undefined') return new ExchangeError(this.id + ' markets not loaded');
       if (typeof symbol === 'string' && symbol in this.markets) return this.markets[symbol];
       throw new ExchangeError(this.id + ' does not have market symbol ' + symbol);
     }
@@ -887,7 +917,7 @@ function () {
   }, {
     key: "extractParams",
     value: function extractParams(string) {
-      var re = /{([a-zA-Z0-9_]+?)}/g;
+      var re = /{([\w-]+)}/g;
       var matches = [];
       var match;
 
@@ -981,8 +1011,8 @@ function () {
       var amountKey = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1;
       timestamp = timestamp || this.milliseconds();
       return {
-        'bids': bidsKey in orderbook ? this.parseBidsAsks(orderbook[bidsKey], priceKey, amountKey) : [],
-        'asks': asksKey in orderbook ? this.parseBidsAsks(orderbook[asksKey], priceKey, amountKey) : [],
+        'bids': sortBy(bidsKey in orderbook ? this.parseBidsAsks(orderbook[bidsKey], priceKey, amountKey) : [], 0, true),
+        'asks': sortBy(asksKey in orderbook ? this.parseBidsAsks(orderbook[asksKey], priceKey, amountKey) : [], 0),
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp)
       };
@@ -993,15 +1023,15 @@ function () {
       var _this10 = this;
 
       return _Object$values(this.orders).filter(function (order) {
-        return order['status'] == 'open';
+        return order['status'] === 'open';
       }).reduce(function (total, order) {
         var symbol = order['symbol'];
         var market = _this10.markets[symbol];
         var amount = order['remaining'];
 
-        if (currency == market['base'] && order['side'] == 'sell') {
+        if (currency === market['base'] && order['side'] === 'sell') {
           return total + amount;
-        } else if (currency == market['quote'] && order['side'] == 'buy') {
+        } else if (currency === market['quote'] && order['side'] === 'buy') {
           return total + (order['cost'] || order['price'] * amount);
         } else {
           return total;
@@ -1016,15 +1046,15 @@ function () {
       var currencies = _Object$keys(this.omit(balance, 'info'));
 
       currencies.forEach(function (currency) {
-        if (typeof balance[currency].used == 'undefined') {
+        if (typeof balance[currency].used === 'undefined') {
           if (_this11.parseBalanceFromOpenOrders && 'open_orders' in balance['info']) {
             var exchangeOrdersCount = balance['info']['open_orders'];
 
             var cachedOrdersCount = _Object$values(_this11.orders).filter(function (order) {
-              return order['status'] == 'open';
+              return order['status'] === 'open';
             }).length;
 
-            if (cachedOrdersCount == exchangeOrdersCount) {
+            if (cachedOrdersCount === exchangeOrdersCount) {
               balance[currency].used = _this11.getCurrencyUsedOnOpenOrders(currency);
               balance[currency].total = balance[currency].used + balance[currency].free;
             }
@@ -1097,10 +1127,10 @@ function () {
     value: function filterBySinceLimit(array) {
       var since = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var limit = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
-      if (since) array = array.filter(function (entry) {
+      if (typeof since !== 'undefined') array = array.filter(function (entry) {
         return entry.timestamp > since;
       });
-      if (limit) array = array.slice(0, limit);
+      if (typeof limit !== 'undefined') array = array.slice(0, limit);
       return array;
     }
   }, {
@@ -1248,10 +1278,28 @@ function () {
       };
     }()
   }, {
-    key: "createLimitBuyOrder",
-    value: function createLimitBuyOrder(symbol) {
+    key: "createLimitOrder",
+    value: function createLimitOrder(symbol) {
       for (var _len5 = arguments.length, args = new Array(_len5 > 1 ? _len5 - 1 : 0), _key5 = 1; _key5 < _len5; _key5++) {
         args[_key5 - 1] = arguments[_key5];
+      }
+
+      return this.createOrder.apply(this, [symbol, 'limit'].concat(args));
+    }
+  }, {
+    key: "createMarketOrder",
+    value: function createMarketOrder(symbol) {
+      for (var _len6 = arguments.length, args = new Array(_len6 > 1 ? _len6 - 1 : 0), _key6 = 1; _key6 < _len6; _key6++) {
+        args[_key6 - 1] = arguments[_key6];
+      }
+
+      return this.createOrder.apply(this, [symbol, 'market'].concat(args));
+    }
+  }, {
+    key: "createLimitBuyOrder",
+    value: function createLimitBuyOrder(symbol) {
+      for (var _len7 = arguments.length, args = new Array(_len7 > 1 ? _len7 - 1 : 0), _key7 = 1; _key7 < _len7; _key7++) {
+        args[_key7 - 1] = arguments[_key7];
       }
 
       return this.createOrder.apply(this, [symbol, 'limit', 'buy'].concat(args));
@@ -1259,8 +1307,8 @@ function () {
   }, {
     key: "createLimitSellOrder",
     value: function createLimitSellOrder(symbol) {
-      for (var _len6 = arguments.length, args = new Array(_len6 > 1 ? _len6 - 1 : 0), _key6 = 1; _key6 < _len6; _key6++) {
-        args[_key6 - 1] = arguments[_key6];
+      for (var _len8 = arguments.length, args = new Array(_len8 > 1 ? _len8 - 1 : 0), _key8 = 1; _key8 < _len8; _key8++) {
+        args[_key8 - 1] = arguments[_key8];
       }
 
       return this.createOrder.apply(this, [symbol, 'limit', 'sell'].concat(args));
@@ -1293,9 +1341,15 @@ function () {
       return this.truncate(amount, this.markets[symbol].precision.amount);
     }
   }, {
+    key: "amountToString",
+    value: function amountToString(symbol, amount) {
+      return this.truncate_to_string(amount, this.markets[symbol].precision.amount);
+    }
+  }, {
     key: "amountToLots",
     value: function amountToLots(symbol, amount) {
-      return this.amountToPrecision(symbol, Math.floor(amount / this.markets[symbol].lot) * this.markets[symbol].lot);
+      var lot = this.markets[symbol].lot;
+      return this.amountToPrecision(symbol, Math.floor(amount / lot) * lot);
     }
   }, {
     key: "feeToPrecision",

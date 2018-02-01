@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -23,8 +23,8 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
-    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
+    AuthenticationError = _require.AuthenticationError,
+    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -47,8 +47,11 @@ function (_Exchange) {
         'countries': 'GB',
         'rateLimit': 1000,
         'version': 'v2',
-        'hasCORS': false,
-        'hasFetchOrder': true,
+        'has': {
+          'CORS': true,
+          'fetchOrder': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg',
           'api': 'https://www.bitstamp.net/api',
@@ -65,10 +68,10 @@ function (_Exchange) {
             'get': ['order_book/{pair}/', 'ticker_hour/{pair}/', 'ticker/{pair}/', 'transactions/{pair}/', 'trading-pairs-info/']
           },
           'private': {
-            'post': ['balance/', 'balance/{pair}/', 'user_transactions/', 'user_transactions/{pair}/', 'open_orders/all/', 'open_orders/{pair}', 'order_status/', 'cancel_order/', 'buy/{pair}/', 'buy/market/{pair}/', 'sell/{pair}/', 'sell/market/{pair}/', 'ltc_withdrawal/', 'ltc_address/', 'eth_withdrawal/', 'eth_address/', 'transfer-to-main/', 'transfer-from-main/', 'xrp_withdrawal/', 'xrp_address/', 'withdrawal/open/', 'withdrawal/status/', 'withdrawal/cancel/', 'liquidation_address/new/', 'liquidation_address/info/']
+            'post': ['balance/', 'balance/{pair}/', 'bch_withdrawal/', 'bch_address/', 'user_transactions/', 'user_transactions/{pair}/', 'open_orders/all/', 'open_orders/{pair}/', 'order_status/', 'cancel_order/', 'buy/{pair}/', 'buy/market/{pair}/', 'sell/{pair}/', 'sell/market/{pair}/', 'ltc_withdrawal/', 'ltc_address/', 'eth_withdrawal/', 'eth_address/', 'xrp_withdrawal/', 'xrp_address/', 'transfer-to-main/', 'transfer-from-main/', 'withdrawal/open/', 'withdrawal/status/', 'withdrawal/cancel/', 'liquidation_address/new/', 'liquidation_address/info/']
           },
           'v1': {
-            'post': ['bitcoin_deposit_address/', 'unconfirmed_btc/', 'bitcoin_withdrawal/']
+            'post': ['bitcoin_deposit_address/', 'unconfirmed_btc/', 'bitcoin_withdrawal/', 'ripple_withdrawal/', 'ripple_address/']
           }
         },
         'fees': {
@@ -87,6 +90,7 @@ function (_Exchange) {
             'percentage': false,
             'withdraw': {
               'BTC': 0,
+              'BCH': 0,
               'LTC': 0,
               'ETH': 0,
               'XRP': 0,
@@ -95,6 +99,7 @@ function (_Exchange) {
             },
             'deposit': {
               'BTC': 0,
+              'BCH': 0,
               'LTC': 0,
               'ETH': 0,
               'XRP': 0,
@@ -111,7 +116,7 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, result, i, market, symbol, _symbol$split, _symbol$split2, base, quote, id, precision, _market$minimum_order, _market$minimum_order2, cost, currency, active, lot;
+        var markets, result, i, market, symbol, _symbol$split, _symbol$split2, base, quote, baseId, quoteId, symbolId, id, precision, _market$minimum_order, _market$minimum_order2, cost, currency, active, lot;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -128,19 +133,25 @@ function (_Exchange) {
                   market = markets[i];
                   symbol = market['name'];
                   _symbol$split = symbol.split('/'), _symbol$split2 = _slicedToArray(_symbol$split, 2), base = _symbol$split2[0], quote = _symbol$split2[1];
+                  baseId = base.toLowerCase();
+                  quoteId = quote.toLowerCase();
+                  symbolId = baseId + '_' + quoteId;
                   id = market['url_symbol'];
                   precision = {
                     'amount': market['base_decimals'],
                     'price': market['counter_decimals']
                   };
                   _market$minimum_order = market['minimum_order'].split(' '), _market$minimum_order2 = _slicedToArray(_market$minimum_order, 2), cost = _market$minimum_order2[0], currency = _market$minimum_order2[1];
-                  active = market['trading'] == 'Enabled';
+                  active = market['trading'] === 'Enabled';
                   lot = Math.pow(10, -precision['amount']);
                   result.push({
                     'id': id,
                     'symbol': symbol,
                     'base': base,
                     'quote': quote,
+                    'baseId': baseId,
+                    'quoteId': quoteId,
+                    'symbolId': symbolId,
                     'info': market,
                     'lot': lot,
                     'active': active,
@@ -292,20 +303,27 @@ function (_Exchange) {
       if ('date' in trade) {
         timestamp = parseInt(trade['date']) * 1000;
       } else if ('datetime' in trade) {
-        // timestamp = this.parse8601 (trade['datetime']);
-        timestamp = parseInt(trade['datetime']) * 1000;
+        timestamp = this.parse8601(trade['datetime']);
       }
 
-      var side = trade['type'] == 0 ? 'buy' : 'sell';
+      var side = trade['type'] === '0' ? 'buy' : 'sell';
       var order = undefined;
       if ('order_id' in trade) order = trade['order_id'].toString();
 
       if ('currency_pair' in trade) {
-        if (trade['currency_pair'] in this.markets_by_id) market = this.markets_by_id[trade['currency_pair']];
+        var marketId = trade['currency_pair'];
+        if (marketId in this.markets_by_id) market = this.markets_by_id[marketId];
       }
 
+      var price = this.safeFloat(trade, 'price');
+      price = this.safeFloat(trade, market['symbolId'], price);
+      var amount = this.safeFloat(trade, 'amount');
+      amount = this.safeFloat(trade, market['baseId'], amount);
+      var id = this.safeValue(trade, 'tid');
+      id = this.safeValue(trade, 'id', id);
+      if (id) id = id.toString();
       return {
-        'id': trade['tid'].toString(),
+        'id': id,
         'info': trade,
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
@@ -313,8 +331,8 @@ function (_Exchange) {
         'order': order,
         'type': undefined,
         'side': side,
-        'price': parseFloat(trade['price']),
-        'amount': parseFloat(trade['amount'])
+        'price': parseFloat(price),
+        'amount': parseFloat(amount)
       };
     }
   }, {
@@ -454,7 +472,7 @@ function (_Exchange) {
                   'pair': this.marketId(symbol),
                   'amount': amount
                 };
-                if (type == 'market') method += 'Market';else order['price'] = price;
+                if (type === 'market') method += 'Market';else order['price'] = price;
                 method += 'Pair';
                 _context6.next = 10;
                 return this[method](this.extend(order, params));
@@ -520,8 +538,8 @@ function (_Exchange) {
   }, {
     key: "parseOrderStatus",
     value: function parseOrderStatus(order) {
-      if (order['status'] == 'Queue' || order['status'] == 'Open') return 'open';
-      if (order['status'] == 'Finished') return 'closed';
+      if (order['status'] === 'Queue' || order['status'] === 'Open') return 'open';
+      if (order['status'] === 'Finished') return 'closed';
       return order['status'];
     }
   }, {
@@ -574,8 +592,8 @@ function (_Exchange) {
             limit,
             params,
             market,
-            pair,
             request,
+            method,
             response,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
@@ -591,13 +609,17 @@ function (_Exchange) {
 
               case 6:
                 market = undefined;
-                if (symbol) market = this.market(symbol);
-                pair = market ? market['id'] : 'all';
-                request = this.extend({
-                  'pair': pair
-                }, params);
+                request = {};
+                method = 'privatePostUserTransactions';
+
+                if (symbol) {
+                  market = this.market(symbol);
+                  request['pair'] = market['id'];
+                  method += 'Pair';
+                }
+
                 _context9.next = 12;
-                return this.privatePostOpenOrdersPair(request);
+                return this[method](this.extend(request, params));
 
               case 12:
                 response = _context9.sent;
@@ -655,6 +677,107 @@ function (_Exchange) {
       };
     }()
   }, {
+    key: "getCurrencyName",
+    value: function getCurrencyName(code) {
+      if (code === 'BTC') return 'bitcoin';
+      return code.toLowerCase();
+    }
+  }, {
+    key: "isFiat",
+    value: function isFiat(code) {
+      if (code === 'USD') return true;
+      if (code === 'EUR') return true;
+      return false;
+    }
+  }, {
+    key: "withdraw",
+    value: function () {
+      var _withdraw = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee11(code, amount, address) {
+        var tag,
+            params,
+            isFiat,
+            name,
+            request,
+            v1,
+            method,
+            query,
+            _tag,
+            response,
+            _args11 = arguments;
+
+        return _regeneratorRuntime.wrap(function _callee11$(_context11) {
+          while (1) {
+            switch (_context11.prev = _context11.next) {
+              case 0:
+                tag = _args11.length > 3 && _args11[3] !== undefined ? _args11[3] : undefined;
+                params = _args11.length > 4 && _args11[4] !== undefined ? _args11[4] : {};
+                isFiat = this.isFiat(code);
+
+                if (!isFiat) {
+                  _context11.next = 5;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' fiat withdraw() for ' + code + ' is not implemented yet');
+
+              case 5:
+                name = this.getCurrencyName(code);
+                request = {
+                  'amount': amount,
+                  'address': address
+                };
+                v1 = code === 'BTC';
+                method = v1 ? 'v1' : 'private'; // v1 or v2
+
+                method += 'Post' + this.capitalize(name) + 'Withdrawal';
+                query = params;
+
+                if (!(code === 'XRP')) {
+                  _context11.next = 19;
+                  break;
+                }
+
+                _tag = this.safeString(params, 'destination_tag');
+
+                if (!_tag) {
+                  _context11.next = 18;
+                  break;
+                }
+
+                request['destination_tag'] = _tag;
+                query = this.omit(params, 'destination_tag');
+                _context11.next = 19;
+                break;
+
+              case 18:
+                throw new ExchangeError(this.id + ' withdraw() requires a destination_tag param for ' + code);
+
+              case 19:
+                _context11.next = 21;
+                return this[method](this.extend(request, query));
+
+              case 21:
+                response = _context11.sent;
+                return _context11.abrupt("return", {
+                  'info': response,
+                  'id': response['id']
+                });
+
+              case 23:
+              case "end":
+                return _context11.stop();
+            }
+          }
+        }, _callee11, this);
+      }));
+
+      return function withdraw(_x11, _x12, _x13) {
+        return _withdraw.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "sign",
     value: function sign(path) {
       var api = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'public';
@@ -663,11 +786,11 @@ function (_Exchange) {
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/';
-      if (api != 'v1') url += this.version + '/';
+      if (api !== 'v1') url += this.version + '/';
       url += this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -693,60 +816,27 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee11(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args11 = arguments;
-        return _regeneratorRuntime.wrap(function _callee11$(_context11) {
-          while (1) {
-            switch (_context11.prev = _context11.next) {
-              case 0:
-                api = _args11.length > 1 && _args11[1] !== undefined ? _args11[1] : 'public';
-                method = _args11.length > 2 && _args11[2] !== undefined ? _args11[2] : 'GET';
-                params = _args11.length > 3 && _args11[3] !== undefined ? _args11[3] : {};
-                headers = _args11.length > 4 && _args11[4] !== undefined ? _args11[4] : undefined;
-                body = _args11.length > 5 && _args11[5] !== undefined ? _args11[5] : undefined;
-                _context11.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
+    key: "handleErrors",
+    value: function handleErrors(httpCode, reason, url, method, headers, body) {
+      if (typeof body !== 'string') return; // fallback to default error handler
 
-              case 7:
-                response = _context11.sent;
+      if (body.length < 2) return; // fallback to default error handler
 
-                if (!('status' in response)) {
-                  _context11.next = 11;
-                  break;
-                }
+      if (body[0] === '{' || body[0] === '[') {
+        var response = JSON.parse(body);
+        var status = this.safeString(response, 'status');
 
-                if (!(response['status'] == 'error')) {
-                  _context11.next = 11;
-                  break;
-                }
+        if (status === 'error') {
+          var code = this.safeString(response, 'code');
 
-                throw new ExchangeError(this.id + ' ' + this.json(response));
-
-              case 11:
-                return _context11.abrupt("return", response);
-
-              case 12:
-              case "end":
-                return _context11.stop();
-            }
+          if (typeof code !== 'undefined') {
+            if (code === 'API0005') throw new AuthenticationError(this.id + ' invalid signature, use the uid for the main account if you have subaccounts');
           }
-        }, _callee11, this);
-      }));
 
-      return function request(_x11) {
-        return _request.apply(this, arguments);
-      };
-    }()
+          throw new ExchangeError(this.id + ' ' + this.json(response));
+        }
+      }
+    }
   }]);
 
   return bitstamp;

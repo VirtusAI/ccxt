@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -44,8 +44,10 @@ function (_Exchange) {
         'countries': 'MT',
         'rateLimit': 1000,
         'version': 'v1',
-        'hasCORS': false,
-        'hasFetchTickers': true,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766869-75057fa2-5ee9-11e7-9a6f-13e641fa4707.jpg',
           'api': 'https://api.therocktrading.com',
@@ -66,6 +68,29 @@ function (_Exchange) {
           'trading': {
             'maker': 0.02 / 100,
             'taker': 0.2 / 100
+          },
+          'funding': {
+            'tierBased': false,
+            'percentage': false,
+            'withdraw': {
+              'BTC': 0.0005,
+              'BCH': 0.0005,
+              'PPC': 0.02,
+              'ETH': 0.001,
+              'ZEC': 0.001,
+              'LTC': 0.002,
+              'EUR': 2.5 // worst-case scenario: https://therocktrading.com/en/pages/fees
+
+            },
+            'deposit': {
+              'BTC': 0,
+              'BCH': 0,
+              'PPC': 0,
+              'ETH': 0,
+              'ZEC': 0,
+              'LTC': 0,
+              'EUR': 0
+            }
           }
         }
       });
@@ -92,7 +117,7 @@ function (_Exchange) {
                   market = markets['tickers'][p];
                   id = market['fund_id'];
                   base = id.slice(0, 3);
-                  quote = id.slice(3, 6);
+                  quote = id.slice(3);
                   symbol = base + '/' + quote;
                   result.push({
                     'id': id,
@@ -435,15 +460,8 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                if (!(type == 'market')) {
-                  _context7.next = 6;
-                  break;
-                }
-
-                throw new ExchangeError(this.id + ' allows limit orders only');
-
-              case 6:
-                _context7.next = 8;
+                if (type === 'market') price = 0;
+                _context7.next = 7;
                 return this.privatePostFundsFundIdOrders(this.extend({
                   'fund_id': this.marketId(symbol),
                   'side': side,
@@ -451,14 +469,14 @@ function (_Exchange) {
                   'price': price
                 }, params));
 
-              case 8:
+              case 7:
                 response = _context7.sent;
                 return _context7.abrupt("return", {
                   'info': response,
                   'id': response['id'].toString()
                 });
 
-              case 10:
+              case 9:
               case "end":
                 return _context7.stop();
             }
@@ -520,7 +538,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
         var auth = nonce + url;

@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$getPrototypeOf = require("@babel/runtime/core-js/object/get-prototype-of");
 
@@ -41,8 +41,10 @@ function (_liqui) {
         'countries': 'NZ',
         // New Zealand
         'version': '3',
-        'hasFetchTickers': true,
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/30652751-d74ec8f8-9e31-11e7-98c5-71469fcef03e.jpg',
           'api': {
@@ -50,7 +52,8 @@ function (_liqui) {
             'private': 'https://wex.nz/tapi'
           },
           'www': 'https://wex.nz',
-          'doc': ['https://wex.nz/api/3/docs', 'https://wex.nz/tapi/docs']
+          'doc': ['https://wex.nz/api/3/docs', 'https://wex.nz/tapi/docs'],
+          'fees': 'https://wex.nz/fees'
         },
         'api': {
           'public': {
@@ -64,6 +67,27 @@ function (_liqui) {
           'trading': {
             'maker': 0.2 / 100,
             'taker': 0.2 / 100
+          },
+          'funding': {
+            'withdraw': {
+              'BTC': 0.001,
+              'LTC': 0.001,
+              'NMC': 0.1,
+              'NVC': 0.1,
+              'PPC': 0.1,
+              'DASH': 0.001,
+              'ETH': 0.003,
+              'BCH': 0.001,
+              'ZEC': 0.001
+            }
+          }
+        },
+        'exceptions': {
+          'messages': {
+            'bad status': OrderNotFound,
+            'Requests too often': DDoSProtection,
+            'not available': DDoSProtection,
+            'external service unavailable': DDoSProtection
           }
         }
       });
@@ -99,46 +123,42 @@ function (_liqui) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code == 200) {
-        if (body[0] != '{') {
-          // response is not JSON
-          throw new ExchangeError(this.id + ' returned a non-JSON reply: ' + body);
+      if (code === 200) {
+        if (body[0] !== '{') {
+          // response is not JSON -> resort to default error handler
+          return;
         }
 
         var response = JSON.parse(body);
 
         if ('success' in response) {
           if (!response['success']) {
-            var error = this.safeValue(response, 'error');
+            var error = this.safeString(response, 'error');
 
             if (!error) {
               throw new ExchangeError(this.id + ' returned a malformed error: ' + body);
-            } else if (error == 'bad status') {
-              throw new OrderNotFound(this.id + ' ' + error);
-            } else if (error.indexOf('It is not enough') >= 0) {
-              throw new InsufficientFunds(this.id + ' ' + error);
-            } else if (error == 'Requests too often') {
-              throw new DDoSProtection(this.id + ' ' + error);
-            } else if (error == 'not available') {
-              throw new DDoSProtection(this.id + ' ' + error);
-            } else if (error == 'external service unavailable') {
-              throw new DDoSProtection(this.id + ' ' + error); // that's what fetchOpenOrders return if no open orders (fix for #489)
-            } else if (error != 'no orders') {
-              throw new ExchangeError(this.id + ' ' + error);
+            }
+
+            if (error === 'no orders') {
+              // returned by fetchOpenOrders if no open orders (fix for #489) -> not an error
+              return;
+            }
+
+            var feedback = this.id + ' ' + this.json(response);
+            var messages = this.exceptions.messages;
+
+            if (error in messages) {
+              throw new messages[error](feedback);
+            }
+
+            if (error.indexOf('It is not enough') >= 0) {
+              throw new InsufficientFunds(feedback);
+            } else {
+              throw new ExchangeError(feedback);
             }
           }
         }
       }
-    }
-  }, {
-    key: "request",
-    value: function request(path) {
-      var api = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'public';
-      var method = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'GET';
-      var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-      var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-      var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
-      return this.fetch2(path, api, method, params, headers, body);
     }
   }]);
 

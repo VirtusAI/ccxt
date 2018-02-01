@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _slicedToArray = require("@babel/runtime/helpers/slicedToArray");
 
@@ -23,10 +23,13 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
+    ExchangeNotAvailable = _require.ExchangeNotAvailable,
     ExchangeError = _require.ExchangeError,
     InsufficientFunds = _require.InsufficientFunds,
     OrderNotFound = _require.OrderNotFound,
-    OrderNotCached = _require.OrderNotCached; //  ---------------------------------------------------------------------------
+    OrderNotCached = _require.OrderNotCached,
+    InvalidOrder = _require.InvalidOrder,
+    CancelPending = _require.CancelPending; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -49,19 +52,11 @@ function (_Exchange) {
         'countries': 'US',
         'rateLimit': 1000,
         // up to 6 calls per second
-        'hasCORS': true,
-        // obsolete metainfo interface
-        'hasFetchMyTrades': true,
-        'hasFetchOrder': true,
-        'hasFetchOrders': true,
-        'hasFetchOpenOrders': true,
-        'hasFetchClosedOrders': true,
-        'hasFetchTickers': true,
-        'hasFetchCurrencies': true,
-        'hasWithdraw': true,
-        'hasFetchOHLCV': true,
-        // new metainfo interface
         'has': {
+          'createDepositAddress': true,
+          'fetchDepositAddress': true,
+          'CORS': false,
+          'createMarketOrder': false,
           'fetchOHLCV': true,
           'fetchMyTrades': true,
           'fetchOrder': 'emulated',
@@ -103,7 +98,7 @@ function (_Exchange) {
             'maker': 0.0015,
             'taker': 0.0025
           },
-          'funding': 0.0
+          'funding': {}
         },
         'limits': {
           'amount': {
@@ -135,7 +130,7 @@ function (_Exchange) {
       var rate = market[takerOrMaker];
       var cost = parseFloat(this.costToPrecision(symbol, amount * rate));
 
-      if (side == 'sell') {
+      if (side === 'sell') {
         cost *= price;
       } else {
         key = 'base';
@@ -151,13 +146,15 @@ function (_Exchange) {
   }, {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
-      if (currency == 'BTM') return 'Bitmark';
+      if (currency === 'BTM') return 'Bitmark';
+      if (currency === 'STR') return 'XLM';
       return currency;
     }
   }, {
     key: "currencyId",
     value: function currencyId(currency) {
-      if (currency == 'Bitmark') return 'BTM';
+      if (currency === 'Bitmark') return 'BTM';
+      if (currency === 'XLM') return 'STR';
       return currency;
     }
   }, {
@@ -202,7 +199,7 @@ function (_Exchange) {
                   'period': this.timeframes[timeframe],
                   'start': parseInt(since / 1000)
                 };
-                if (limit) request['end'] = this.sum(request['start'], limit * this.timeframes[timeframe]);
+                if (typeof limit !== 'undefined') request['end'] = this.sum(request['start'], limit * this.timeframes[timeframe]);
                 _context.next = 12;
                 return this.publicGetReturnChartData(this.extend(request, params));
 
@@ -365,7 +362,8 @@ function (_Exchange) {
                   'info': fees,
                   'maker': parseFloat(fees['makerFee']),
                   'taker': parseFloat(fees['takerFee']),
-                  'withdraw': 0.0
+                  'withdraw': {},
+                  'deposit': {}
                 });
 
               case 7:
@@ -400,7 +398,8 @@ function (_Exchange) {
               case 3:
                 _context5.next = 5;
                 return this.publicGetReturnOrderBook(this.extend({
-                  'currencyPair': this.marketId(symbol)
+                  'currencyPair': this.marketId(symbol) // 'depth': 100,
+
                 }, params));
 
               case 5:
@@ -544,9 +543,9 @@ function (_Exchange) {
                   precision = 8; // default precision, todo: fix "magic constants"
 
                   code = this.commonCurrencyCode(id);
-                  active = currency['delisted'] == 0;
+                  active = currency['delisted'] === 0;
                   status = currency['disabled'] ? 'disabled' : 'ok';
-                  if (status != 'ok') active = false;
+                  if (status !== 'ok') active = false;
                   result[code] = {
                     'id': id,
                     'code': code,
@@ -639,8 +638,28 @@ function (_Exchange) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var timestamp = this.parse8601(trade['date']);
       var symbol = undefined;
-      if (!market && 'currencyPair' in trade) market = this.markets_by_id[trade['currencyPair']];
-      if (market) symbol = market['symbol'];
+      var base = undefined;
+      var quote = undefined;
+
+      if (!market && 'currencyPair' in trade) {
+        var currencyPair = trade['currencyPair'];
+
+        if (currencyPair in this.markets_by_id) {
+          market = this.markets_by_id[currencyPair];
+        } else {
+          var parts = currencyPair.split('_');
+          quote = parts[0];
+          base = parts[1];
+          symbol = base + '/' + quote;
+        }
+      }
+
+      if (market) {
+        symbol = market['symbol'];
+        base = market['base'];
+        quote = market['quote'];
+      }
+
       var side = trade['type'];
       var fee = undefined;
       var cost = this.safeFloat(trade, 'total');
@@ -651,12 +670,12 @@ function (_Exchange) {
         var feeCost = undefined;
         var currency = undefined;
 
-        if (side == 'buy') {
-          currency = market['base'];
+        if (side === 'buy') {
+          currency = base;
           feeCost = amount * rate;
         } else {
-          currency = market['quote'];
-          if (typeof cost != 'undefined') feeCost = cost * rate;
+          currency = quote;
+          if (typeof cost !== 'undefined') feeCost = cost * rate;
         }
 
         fee = {
@@ -711,7 +730,7 @@ function (_Exchange) {
                   'currencyPair': market['id']
                 };
 
-                if (since) {
+                if (typeof since !== 'undefined') {
                   request['start'] = parseInt(since / 1000);
                   request['end'] = this.seconds(); // last 50000 trades by default
                 }
@@ -754,7 +773,6 @@ function (_Exchange) {
             i,
             id,
             _market,
-            _symbol,
             trades,
             j,
             _args10 = arguments;
@@ -778,7 +796,7 @@ function (_Exchange) {
                   'currencyPair': pair
                 };
 
-                if (since) {
+                if (typeof since !== 'undefined') {
                   request['start'] = parseInt(since / 1000);
                   request['end'] = this.seconds();
                 } // limit is disabled (does not really work as expected)
@@ -801,8 +819,8 @@ function (_Exchange) {
 
                     for (i = 0; i < ids.length; i++) {
                       id = ids[i];
-                      _market = this.markets_by_id[id];
-                      _symbol = _market['symbol'];
+                      _market = undefined;
+                      if (id in this.markets_by_id) _market = this.markets_by_id[id];
                       trades = this.parseTrades(response[id], _market);
 
                       for (j = 0; j < trades.length; j++) {
@@ -836,11 +854,31 @@ function (_Exchange) {
       if ('resultingTrades' in order) trades = this.parseTrades(order['resultingTrades'], market);
       var symbol = undefined;
       if (market) symbol = market['symbol'];
-      var price = parseFloat(order['price']);
+      var price = this.safeFloat(order, 'price');
       var cost = this.safeFloat(order, 'total', 0.0);
       var remaining = this.safeFloat(order, 'amount');
       var amount = this.safeFloat(order, 'startingAmount', remaining);
-      var filled = amount - remaining;
+      var filled = undefined;
+
+      if (typeof amount !== 'undefined') {
+        if (typeof remaining !== 'undefined') filled = amount - remaining;
+      }
+
+      if (typeof filled === 'undefined') {
+        if (typeof trades !== 'undefined') {
+          filled = 0;
+          cost = 0;
+
+          for (var i = 0; i < trades.length; i++) {
+            var trade = trades[i];
+            var tradeAmount = trade['amount'];
+            var tradePrice = trade['price'];
+            filled = this.sum(filled, tradeAmount);
+            cost += tradePrice * tradeAmount;
+          }
+        }
+      }
+
       return {
         'info': order,
         'id': order['orderNumber'],
@@ -959,7 +997,7 @@ function (_Exchange) {
                   } else {
                     _order = this.orders[id];
 
-                    if (_order['status'] == 'open') {
+                    if (_order['status'] === 'open') {
                       this.orders[id] = this.extend(_order, {
                         'status': 'closed',
                         'cost': _order['amount'] * _order['price'],
@@ -972,7 +1010,7 @@ function (_Exchange) {
                   order = this.orders[id];
 
                   if (market) {
-                    if (order['symbol'] == symbol) result.push(order);
+                    if (order['symbol'] === symbol) result.push(order);
                   } else {
                     result.push(order);
                   }
@@ -1028,7 +1066,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(orders[i]['id'] == id)) {
+                if (!(orders[i]['id'] === id)) {
                   _context12.next = 12;
                   break;
                 }
@@ -1061,7 +1099,7 @@ function (_Exchange) {
       var result = [];
 
       for (var i = 0; i < orders.length; i++) {
-        if (orders[i]['status'] == status) result.push(orders[i]);
+        if (orders[i]['status'] === status) result.push(orders[i]);
       }
 
       return result;
@@ -1166,7 +1204,7 @@ function (_Exchange) {
                 price = _args15.length > 4 && _args15[4] !== undefined ? _args15[4] : undefined;
                 params = _args15.length > 5 && _args15[5] !== undefined ? _args15[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context15.next = 4;
                   break;
                 }
@@ -1230,6 +1268,7 @@ function (_Exchange) {
             response,
             result,
             newid,
+            market,
             _args16 = arguments;
         return _regeneratorRuntime.wrap(function _callee16$(_context16) {
           while (1) {
@@ -1242,12 +1281,16 @@ function (_Exchange) {
 
               case 4:
                 price = parseFloat(price);
-                amount = parseFloat(amount);
                 request = {
                   'orderNumber': id,
-                  'rate': this.priceToPrecision(symbol, price),
-                  'amount': this.amountToPrecision(symbol, amount)
+                  'rate': this.priceToPrecision(symbol, price)
                 };
+
+                if (typeof amount !== 'undefined') {
+                  amount = parseFloat(amount);
+                  request['amount'] = this.amountToPrecision(symbol, amount);
+                }
+
                 _context16.next = 9;
                 return this.privatePostMoveOrder(this.extend(request, params));
 
@@ -1261,17 +1304,17 @@ function (_Exchange) {
                   this.orders[newid] = this.extend(this.orders[id], {
                     'id': newid,
                     'price': price,
-                    'amount': amount,
                     'status': 'open'
                   });
+                  if (typeof amount !== 'undefined') this.orders[newid]['amount'] = amount;
                   result = this.extend(this.orders[newid], {
                     'info': response
                   });
                 } else {
-                  result = {
-                    'info': response,
-                    'id': response['orderNumber']
-                  };
+                  market = undefined;
+                  if (symbol) market = this.market(symbol);
+                  result = this.parseOrder(response, market);
+                  this.orders[result['id']] = result;
                 }
 
                 return _context16.abrupt("return", result);
@@ -1460,7 +1503,7 @@ function (_Exchange) {
               case 4:
                 response = _context20.sent;
                 address = undefined;
-                if (response['success'] == 1) address = this.safeString(response, 'response');
+                if (response['success'] === 1) address = this.safeString(response, 'response');
 
                 if (address) {
                   _context20.next = 9;
@@ -1539,35 +1582,40 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee22(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             currencyId,
+            request,
             result,
             _args22 = arguments;
         return _regeneratorRuntime.wrap(function _callee22$(_context22) {
           while (1) {
             switch (_context22.prev = _context22.next) {
               case 0:
-                params = _args22.length > 3 && _args22[3] !== undefined ? _args22[3] : {};
-                _context22.next = 3;
+                tag = _args22.length > 3 && _args22[3] !== undefined ? _args22[3] : undefined;
+                params = _args22.length > 4 && _args22[4] !== undefined ? _args22[4] : {};
+                _context22.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 currencyId = this.currencyId(currency);
-                _context22.next = 6;
-                return this.privatePostWithdraw(this.extend({
+                request = {
                   'currency': currencyId,
                   'amount': amount,
                   'address': address
-                }, params));
+                };
+                if (tag) request['paymentId'] = tag;
+                _context22.next = 9;
+                return this.privatePostWithdraw(this.extend(request, params));
 
-              case 6:
+              case 9:
                 result = _context22.sent;
                 return _context22.abrupt("return", {
                   'info': result,
                   'id': result['response']
                 });
 
-              case 8:
+              case 11:
               case "end":
                 return _context22.stop();
             }
@@ -1597,7 +1645,7 @@ function (_Exchange) {
         'command': path
       }, params);
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -1616,6 +1664,29 @@ function (_Exchange) {
         'body': body,
         'headers': headers
       };
+    }
+  }, {
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      if (code >= 400) {
+        if (body[0] === '{') {
+          var response = JSON.parse(body);
+
+          if ('error' in response) {
+            var error = this.id + ' ' + body;
+
+            if (response['error'].indexOf('Total must be at least') >= 0) {
+              throw new InvalidOrder(error);
+            } else if (response['error'].indexOf('Not enough') >= 0) {
+              throw new InsufficientFunds(error);
+            } else if (response['error'].indexOf('Nonce must be greater') >= 0) {
+              throw new ExchangeNotAvailable(error);
+            } else if (response['error'].indexOf('You have already called cancelOrder or moveOrder on this order.') >= 0) {
+              throw new CancelPending(error);
+            }
+          }
+        }
+      }
     }
   }, {
     key: "request",

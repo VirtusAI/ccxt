@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -48,7 +48,9 @@ function (_Exchange) {
         'rateLimit': 2000,
         // 30 requests per minute
         'version': 'v3',
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766335-715ce7aa-5ed5-11e7-88a8-173a27bb30fe.jpg',
           'api': 'https://api.bitso.com',
@@ -403,7 +405,7 @@ function (_Exchange) {
                   'type': type,
                   'major': this.amountToPrecision(symbol, amount)
                 };
-                if (type == 'limit') order['price'] = this.priceToPrecision(symbol, price);
+                if (type === 'limit') order['price'] = this.priceToPrecision(symbol, price);
                 _context6.next = 8;
                 return this.privatePostOrders(this.extend(order, params));
 
@@ -446,7 +448,7 @@ function (_Exchange) {
 
               case 4:
                 _context7.next = 6;
-                return this.privateDeleteOrders({
+                return this.privateDeleteOrdersOid({
                   'oid': id
                 });
 
@@ -473,25 +475,26 @@ function (_Exchange) {
       var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
-      var query = '/' + this.version + '/' + this.implodeParams(path, params);
-      var url = this.urls['api'] + query;
+      var endpoint = '/' + this.version + '/' + this.implodeParams(path, params);
+      var query = this.omit(params, this.extractParams(path));
+      var url = this.urls['api'] + endpoint;
 
-      if (api == 'public') {
-        if (_Object$keys(params).length) url += '?' + this.urlencode(params);
+      if (api === 'public') {
+        if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
-        var request = [nonce, method, query].join('');
+        var request = [nonce, method, endpoint].join('');
 
-        if (_Object$keys(params).length) {
-          body = this.json(params);
+        if (_Object$keys(query).length) {
+          body = this.json(query);
           request += body;
         }
 
         var signature = this.hmac(this.encode(request), this.encode(this.secret));
         var auth = this.apiKey + ':' + nonce + ':' + signature;
         headers = {
-          'Authorization': "Bitso " + auth,
+          'Authorization': 'Bitso ' + auth,
           'Content-Type': 'application/json'
         };
       }

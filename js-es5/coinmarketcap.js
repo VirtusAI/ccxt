@@ -44,21 +44,24 @@ function (_Exchange) {
         'rateLimit': 10000,
         'version': 'v1',
         'countries': 'US',
-        'hasCORS': true,
-        'hasPrivateAPI': false,
-        'hasCreateOrder': false,
-        'hasCancelOrder': false,
-        'hasFetchBalance': false,
-        'hasFetchOrderBook': false,
-        'hasFetchTrades': false,
-        'hasFetchTickers': true,
-        'hasFetchCurrencies': true,
         'has': {
+          'CORS': true,
+          'privateAPI': false,
+          'createOrder': false,
+          'cancelOrder': false,
+          'fetchBalance': false,
+          'fetchOrderBook': false,
+          'fetchTrades': false,
+          'fetchTickers': true,
           'fetchCurrencies': true
         },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28244244-9be6312a-69ed-11e7-99c1-7c1797275265.jpg',
-          'api': 'https://api.coinmarketcap.com',
+          'api': {
+            'public': 'https://api.coinmarketcap.com',
+            'files': 'https://files.coinmarketcap.com',
+            'charts': 'https://graph.coinmarketcap.com'
+          },
           'www': 'https://coinmarketcap.com',
           'doc': 'https://coinmarketcap.com/api'
         },
@@ -67,6 +70,12 @@ function (_Exchange) {
           'secret': false
         },
         'api': {
+          'files': {
+            'get': ['generated/stats/global.json']
+          },
+          'graphs': {
+            'get': ['currencies/{name}/']
+          },
           'public': {
             'get': ['ticker/', 'ticker/{id}/', 'global/']
           }
@@ -102,12 +111,24 @@ function (_Exchange) {
       };
     }()
   }, {
+    key: "currencyCode",
+    value: function currencyCode(base, name) {
+      var currencies = {
+        'Bitgem': 'Bitgem',
+        'NetCoin': 'NetCoin',
+        'BatCoin': 'BatCoin',
+        'iCoin': 'iCoin'
+      };
+      if (name in currencies) return currencies[name];
+      return base;
+    }
+  }, {
     key: "fetchMarkets",
     value: function () {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2() {
-        var markets, result, p, market, currencies, i, quote, quoteId, base, baseId, symbol, id;
+        var markets, result, p, market, currencies, i, quote, quoteId, baseId, base, symbol, id;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
@@ -128,8 +149,8 @@ function (_Exchange) {
                   for (i = 0; i < currencies.length; i++) {
                     quote = currencies[i];
                     quoteId = quote.toLowerCase();
-                    base = market['symbol'];
                     baseId = market['id'];
+                    base = this.currencyCode(market['symbol'], market['name']);
                     symbol = base + '/' + quote;
                     id = baseId + '/' + quote;
                     result.push({
@@ -361,6 +382,7 @@ function (_Exchange) {
             i,
             currency,
             id,
+            name,
             precision,
             code,
             _args6 = arguments;
@@ -380,18 +402,19 @@ function (_Exchange) {
 
                 for (i = 0; i < currencies.length; i++) {
                   currency = currencies[i];
-                  id = currency['symbol']; // todo: will need to rethink the fees
+                  id = currency['symbol'];
+                  name = currency['name']; // todo: will need to rethink the fees
                   // to add support for multiple withdrawal/deposit methods and
                   // differentiated fees for each particular method
 
                   precision = 8; // default precision, todo: fix "magic constants"
 
-                  code = this.commonCurrencyCode(id);
+                  code = this.currencyCode(id, name);
                   result[code] = {
                     'id': id,
                     'code': code,
                     'info': currency,
-                    'name': currency['name'],
+                    'name': name,
                     'active': true,
                     'status': 'ok',
                     'fee': undefined,
@@ -440,7 +463,7 @@ function (_Exchange) {
       var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
-      var url = this.urls['api'] + '/' + this.version + '/' + this.implodeParams(path, params);
+      var url = this.urls['api'][api] + '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
       if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       return {

@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -47,9 +47,12 @@ function (_liqui) {
         'rateLimit': 3000,
         // responses are cached every 2 seconds
         'version': '3',
-        'hasCORS': false,
-        'hasWithdraw': true,
-        'hasFetchTickers': false,
+        'has': {
+          'createDepositAddress': true,
+          'fetchDepositAddress': true,
+          'CORS': false,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766910-cdcbfdae-5eea-11e7-9859-03fea873272d.jpg',
           'api': {
@@ -57,7 +60,8 @@ function (_liqui) {
             'private': 'https://yobit.net/tapi'
           },
           'www': 'https://www.yobit.net',
-          'doc': 'https://www.yobit.net/en/api/'
+          'doc': 'https://www.yobit.net/en/api/',
+          'fees': 'https://www.yobit.net/en/fees/'
         },
         'api': {
           'public': {
@@ -72,7 +76,8 @@ function (_liqui) {
             'maker': 0.002,
             'taker': 0.002
           },
-          'funding': 0.0
+          'funding': 0.0,
+          'withdraw': 0.0005
         }
       });
     }
@@ -301,33 +306,35 @@ function (_liqui) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee4(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             response,
             _args4 = arguments;
         return _regeneratorRuntime.wrap(function _callee4$(_context4) {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
-                params = _args4.length > 3 && _args4[3] !== undefined ? _args4[3] : {};
-                _context4.next = 3;
+                tag = _args4.length > 3 && _args4[3] !== undefined ? _args4[3] : undefined;
+                params = _args4.length > 4 && _args4[4] !== undefined ? _args4[4] : {};
+                _context4.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context4.next = 5;
+              case 4:
+                _context4.next = 6;
                 return this.privatePostWithdrawCoinsToAddress(this.extend({
                   'coinName': currency,
                   'amount': amount,
                   'address': address
                 }, params));
 
-              case 5:
+              case 6:
                 response = _context4.sent;
                 return _context4.abrupt("return", {
                   'info': response,
                   'id': undefined
                 });
 
-              case 7:
+              case 8:
               case "end":
                 return _context4.stop();
             }
@@ -385,7 +392,7 @@ function (_liqui) {
                 throw new InsufficientFunds(this.id + ' ' + this.json(response));
 
               case 14:
-                if (!(response['error'] == 'Requests too often')) {
+                if (!(response['error'] === 'Requests too often')) {
                   _context5.next = 18;
                   break;
                 }
@@ -393,7 +400,7 @@ function (_liqui) {
                 throw new DDoSProtection(this.id + ' ' + this.json(response));
 
               case 18:
-                if (!(response['error'] == 'not available' || response['error'] == 'external service unavailable')) {
+                if (!(response['error'] === 'not available' || response['error'] === 'external service unavailable')) {
                   _context5.next = 22;
                   break;
                 }

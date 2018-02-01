@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -22,8 +22,7 @@ var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
     ExchangeError = _require.ExchangeError,
-    NotSupported = _require.NotSupported,
-    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
+    NotSupported = _require.NotSupported; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -46,7 +45,9 @@ function (_Exchange) {
         'countries': 'GB',
         'rateLimit': 1000,
         'version': 'v1',
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg',
           'api': 'https://www.bitstamp.net/api',
@@ -182,7 +183,7 @@ function (_Exchange) {
               case 0:
                 params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
 
-                if (!(symbol != 'BTC/USD')) {
+                if (!(symbol !== 'BTC/USD')) {
                   _context.next = 3;
                   break;
                 }
@@ -229,7 +230,7 @@ function (_Exchange) {
               case 0:
                 params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
 
-                if (!(symbol != 'BTC/USD')) {
+                if (!(symbol !== 'BTC/USD')) {
                   _context2.next = 3;
                   break;
                 }
@@ -292,7 +293,7 @@ function (_Exchange) {
         timestamp = parseInt(trade['datetime']) * 1000;
       }
 
-      var side = trade['type'] == 0 ? 'buy' : 'sell';
+      var side = trade['type'] === 0 ? 'buy' : 'sell';
       var order = undefined;
       if ('order_id' in trade) order = trade['order_id'].toString();
 
@@ -333,7 +334,7 @@ function (_Exchange) {
                 limit = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : undefined;
                 params = _args3.length > 3 && _args3[3] !== undefined ? _args3[3] : {};
 
-                if (!(symbol != 'BTC/USD')) {
+                if (!(symbol !== 'BTC/USD')) {
                   _context3.next = 5;
                   break;
                 }
@@ -442,7 +443,7 @@ function (_Exchange) {
                 price = _args5.length > 4 && _args5[4] !== undefined ? _args5[4] : undefined;
                 params = _args5.length > 5 && _args5[5] !== undefined ? _args5[5] : {};
 
-                if (!(type != 'limit')) {
+                if (!(type !== 'limit')) {
                   _context5.next = 4;
                   break;
                 }
@@ -450,7 +451,7 @@ function (_Exchange) {
                 throw new ExchangeError(this.id + ' ' + this.version + ' accepts limit orders only');
 
               case 4:
-                if (!(symbol != 'BTC/USD')) {
+                if (!(symbol !== 'BTC/USD')) {
                   _context5.next = 6;
                   break;
                 }
@@ -523,8 +524,8 @@ function (_Exchange) {
   }, {
     key: "parseOrderStatus",
     value: function parseOrderStatus(order) {
-      if (order['status'] == 'Queue' || order['status'] == 'Open') return 'open';
-      if (order['status'] == 'Finished') return 'closed';
+      if (order['status'] === 'Queue' || order['status'] === 'Open') return 'open';
+      if (order['status'] === 'Finished') return 'closed';
       return order['status'];
     }
   }, {
@@ -635,7 +636,7 @@ function (_Exchange) {
                 params = _args9.length > 2 && _args9[2] !== undefined ? _args9[2] : {};
                 throw new NotSupported(this.id + ' fetchOrder is not implemented yet');
 
-              case 5:
+              case 3:
               case "end":
                 return _context9.stop();
             }
@@ -658,7 +659,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -716,7 +717,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['status'] == 'error')) {
+                if (!(response['status'] === 'error')) {
                   _context10.next = 11;
                   break;
                 }

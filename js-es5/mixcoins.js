@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -44,7 +44,9 @@ function (_Exchange) {
         'countries': ['GB', 'HK'],
         'rateLimit': 1500,
         'version': 'v1',
-        'hasCORS': false,
+        'has': {
+          'CORS': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/30237212-ed29303c-9535-11e7-8af8-fcd381cfa20c.jpg',
           'api': 'https://mixcoins.com/api',
@@ -77,7 +79,7 @@ function (_Exchange) {
             'taker': 0.0015
           },
           'BCH/BTC': {
-            'id': 'bcc_btc',
+            'id': 'bch_btc',
             'symbol': 'BCH/BTC',
             'base': 'BCH',
             'quote': 'BTC',
@@ -93,7 +95,7 @@ function (_Exchange) {
             'taker': 0.0025
           },
           'BCH/USD': {
-            'id': 'bcc_usd',
+            'id': 'bch_usd',
             'symbol': 'BCH/USD',
             'base': 'BCH',
             'quote': 'USD',
@@ -344,7 +346,7 @@ function (_Exchange) {
                   'amount': amount
                 };
 
-                if (type == 'market') {
+                if (type === 'market') {
                   order['order_type'] = 1;
                   order['price'] = price;
                 } else {
@@ -418,7 +420,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
       } else {
         this.checkRequiredCredentials();
@@ -473,7 +475,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['status'] == 200)) {
+                if (!(response['status'] === 200)) {
                   _context7.next = 11;
                   break;
                 }

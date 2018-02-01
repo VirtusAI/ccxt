@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -21,10 +21,11 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
+    InvalidNonce = _require.InvalidNonce,
     OrderNotFound = _require.OrderNotFound,
     InvalidOrder = _require.InvalidOrder,
-    InsufficientFunds = _require.InsufficientFunds; //  ---------------------------------------------------------------------------
+    InsufficientFunds = _require.InsufficientFunds,
+    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -47,9 +48,9 @@ function (_Exchange) {
         'countries': ['CN', 'TW'],
         'version': '2',
         'rateLimit': 1000,
-        'hasFetchTickers': true,
-        'hasCORS': false,
         'has': {
+          'CORS': false,
+          'fetchTickers': true,
           'fetchOrder': true,
           'fetchOrders': true,
           'fetchOpenOrders': true,
@@ -59,16 +60,31 @@ function (_Exchange) {
           'logo': 'https://user-images.githubusercontent.com/1294454/30953915-b1611dc0-a436-11e7-8947-c95bd5a42086.jpg',
           'api': 'https://api.qryptos.com',
           'www': 'https://www.qryptos.com',
-          'doc': 'https://developers.quoine.com'
+          'doc': ['https://developers.quoine.com', 'https://developers.quoine.com/v2'],
+          'fees': 'https://qryptos.zendesk.com/hc/en-us/articles/115007858167-Fees'
         },
         'api': {
           'public': {
             'get': ['products', 'products/{id}', 'products/{id}/price_levels', 'executions', 'ir_ladders/{currency}']
           },
           'private': {
-            'get': ['accounts/balance', 'crypto_accounts', 'executions/me', 'fiat_accounts', 'loan_bids', 'loans', 'orders', 'orders/{id}', 'orders/{id}/trades', 'trades', 'trades/{id}/loans', 'trading_accounts', 'trading_accounts/{id}'],
+            'get': ['accounts/balance', 'accounts/main_asset', 'crypto_accounts', 'executions/me', 'fiat_accounts', 'loan_bids', 'loans', 'orders', 'orders/{id}', 'orders/{id}/trades', 'orders/{id}/executions', 'trades', 'trades/{id}/loans', 'trading_accounts', 'trading_accounts/{id}'],
             'post': ['fiat_accounts', 'loan_bids', 'orders'],
             'put': ['loan_bids/{id}/close', 'loans/{id}', 'orders/{id}', 'orders/{id}/cancel', 'trades/{id}', 'trades/{id}/close', 'trades/close_all', 'trading_accounts/{id}']
+          }
+        },
+        'skipJsonOnStatusCodes': [401],
+        'exceptions': {
+          'messages': {
+            'API Authentication failed': AuthenticationError,
+            'Nonce is too small': InvalidNonce,
+            'Order not found': OrderNotFound,
+            'user': {
+              'not_enough_free_balance': InsufficientFunds
+            },
+            'quantity': {
+              'less_than_order_size': InvalidOrder
+            }
           }
         }
       });
@@ -93,7 +109,7 @@ function (_Exchange) {
 
                 for (p = 0; p < markets.length; p++) {
                   market = markets[p];
-                  id = market['id'];
+                  id = market['id'].toString();
                   base = market['base_currency'];
                   quote = market['quoted_currency'];
                   symbol = base + '/' + quote;
@@ -404,7 +420,7 @@ function (_Exchange) {
                 request = {
                   'product_id': market['id']
                 };
-                if (limit) request['limit'] = limit;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context6.next = 10;
                 return this.publicGetExecutions(this.extend(request, params));
 
@@ -451,11 +467,9 @@ function (_Exchange) {
                   'side': side,
                   'quantity': amount
                 };
-                if (type == 'limit') order['price'] = price;
+                if (type === 'limit') order['price'] = price;
                 _context7.next = 8;
-                return this.privatePostOrders(this.extend({
-                  'order': order
-                }, params));
+                return this.privatePostOrders(this.extend(order, params));
 
               case 8:
                 response = _context7.sent;
@@ -503,7 +517,7 @@ function (_Exchange) {
                 result = _context8.sent;
                 order = this.parseOrder(result);
 
-                if (!(order['status'] == 'closed')) {
+                if (!(order['status'] === 'closed')) {
                   _context8.next = 10;
                   break;
                 }
@@ -529,16 +543,16 @@ function (_Exchange) {
     key: "parseOrder",
     value: function parseOrder(order) {
       var timestamp = order['created_at'] * 1000;
-      var marketId = order['product_id'];
+      var marketId = order['product_id'].toString();
       var market = this.marketsById[marketId];
       var status = undefined;
 
       if ('status' in order) {
-        if (order['status'] == 'live') {
+        if (order['status'] === 'live') {
           status = 'open';
-        } else if (order['status'] == 'filled') {
+        } else if (order['status'] === 'filled') {
           status = 'closed';
-        } else if (order['status'] == 'cancelled') {
+        } else if (order['status'] === 'cancelled') {
           // 'll' intended
           status = 'canceled';
         }
@@ -553,7 +567,7 @@ function (_Exchange) {
       }
 
       return {
-        'id': order['id'],
+        'id': order['id'].toString(),
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'type': order['order_type'],
@@ -649,18 +663,22 @@ function (_Exchange) {
                   request['product_id'] = market['id'];
                 }
 
-                status = params['status'];
+                status = this.safeValue(params, 'status');
 
-                if (status == 'open') {
-                  request['status'] = 'live';
-                } else if (status == 'closed') {
-                  request['status'] = 'filled';
-                } else if (status == 'canceled') {
-                  request['status'] = 'cancelled';
+                if (status) {
+                  params = this.omit(params, 'status');
+
+                  if (status === 'open') {
+                    request['status'] = 'live';
+                  } else if (status === 'closed') {
+                    request['status'] = 'filled';
+                  } else if (status === 'canceled') {
+                    request['status'] = 'cancelled';
+                  }
                 }
 
                 _context10.next = 13;
-                return this.privateGetOrders(request);
+                return this.privateGetOrders(this.extend(request, params));
 
               case 13:
                 result = _context10.sent;
@@ -702,46 +720,6 @@ function (_Exchange) {
       }, params));
     }
   }, {
-    key: "handleErrors",
-    value: function handleErrors(code, reason, url, method, headers, body) {
-      var response = undefined;
-
-      if (code == 200 || code == 404 || code == 422) {
-        if (body[0] == '{' || body[0] == '[') {
-          response = JSON.parse(body);
-        } else {
-          // if not a JSON response
-          throw new ExchangeError(this.id + ' returned a non-JSON reply: ' + body);
-        }
-      }
-
-      if (code == 404) {
-        if ('message' in response) {
-          if (response['message'] == 'Order not found') {
-            throw new OrderNotFound(this.id + ' ' + body);
-          }
-        }
-      } else if (code == 422) {
-        if ('errors' in response) {
-          var errors = response['errors'];
-
-          if ('user' in errors) {
-            var messages = errors['user'];
-
-            if (messages.indexOf('not_enough_free_balance') >= 0) {
-              throw new InsufficientFunds(this.id + ' ' + body);
-            }
-          } else if ('quantity' in errors) {
-            var _messages = errors['quantity'];
-
-            if (_messages.indexOf('less_than_order_size') >= 0) {
-              throw new InvalidOrder(this.id + ' ' + body);
-            }
-          }
-        }
-      }
-    }
-  }, {
     key: "nonce",
     value: function nonce() {
       return this.milliseconds();
@@ -761,12 +739,12 @@ function (_Exchange) {
         'Content-Type': 'application/json'
       };
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
 
-        if (method == 'GET') {
+        if (method === 'GET') {
           if (_Object$keys(query).length) url += '?' + this.urlencode(query);
         } else if (_Object$keys(query).length) {
           body = this.json(query);
@@ -790,6 +768,48 @@ function (_Exchange) {
         'body': body,
         'headers': headers
       };
+    }
+  }, {
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      var response = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : undefined;
+      if (code >= 200 && code <= 299) return;
+      var messages = this.exceptions.messages;
+
+      if (code === 401) {
+        // expected non-json response
+        if (body in messages) throw new messages[body](this.id + ' ' + body);else return;
+      }
+
+      if (typeof response === 'undefined') if (body[0] === '{' || body[0] === '[') response = JSON.parse(body);else return;
+      var feedback = this.id + ' ' + this.json(response);
+
+      if (code === 404) {
+        // { "message": "Order not found" }
+        var message = this.safeString(response, 'message');
+        if (message in messages) throw new messages[message](feedback);
+      } else if (code === 422) {
+        // array of error messages is returned in 'user' or 'quantity' property of 'errors' object, e.g.:
+        // { "errors": { "user": ["not_enough_free_balance"] }}
+        // { "errors": { "quantity": ["less_than_order_size"] }}
+        if ('errors' in response) {
+          var errors = response['errors'];
+          var errorTypes = ['user', 'quantity'];
+
+          for (var i = 0; i < errorTypes.length; i++) {
+            var errorType = errorTypes[i];
+
+            if (errorType in errors) {
+              var errorMessages = errors[errorType];
+
+              for (var j = 0; j < errorMessages.length; j++) {
+                var _message = errorMessages[j];
+                if (_message in messages[errorType]) throw new messages[errorType][_message](feedback);
+              }
+            }
+          }
+        }
+      }
     }
   }]);
 

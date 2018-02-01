@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -45,19 +45,13 @@ function (_bitfinex) {
       return this.deepExtend(_get(bitfinex2.prototype.__proto__ || _Object$getPrototypeOf(bitfinex2.prototype), "describe", this).call(this), {
         'id': 'bitfinex2',
         'name': 'Bitfinex v2',
-        'countries': 'US',
+        'countries': 'VG',
         'version': 'v2',
-        'hasCORS': true,
-        // old metainfo interface
-        'hasFetchOrder': true,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
-        'hasWithdraw': true,
-        'hasDeposit': false,
-        'hasFetchOpenOrders': false,
-        'hasFetchClosedOrders': false,
         // new metainfo interface
         'has': {
+          'CORS': true,
+          'createOrder': false,
+          'fetchMyTrades': false,
           'fetchOHLCV': true,
           'fetchTickers': true,
           'fetchOrder': true,
@@ -90,7 +84,7 @@ function (_bitfinex) {
         },
         'api': {
           'public': {
-            'get': ['platform/status', 'tickers', 'ticker/{symbol}', 'trades/{symbol}/hist', 'book/{symbol}/{precision}', 'book/{symbol}/P0', 'book/{symbol}/P1', 'book/{symbol}/P2', 'book/{symbol}/P3', 'book/{symbol}/R0', 'symbols_details', 'stats1/{key}:{size}:{symbol}/{side}/{section}', 'stats1/{key}:{size}:{symbol}/long/last', 'stats1/{key}:{size}:{symbol}/long/hist', 'stats1/{key}:{size}:{symbol}/short/last', 'stats1/{key}:{size}:{symbol}/short/hist', 'candles/trade:{timeframe}:{symbol}/{section}', 'candles/trade:{timeframe}:{symbol}/last', 'candles/trade:{timeframe}:{symbol}/hist'],
+            'get': ['platform/status', 'tickers', 'ticker/{symbol}', 'trades/{symbol}/hist', 'book/{symbol}/{precision}', 'book/{symbol}/P0', 'book/{symbol}/P1', 'book/{symbol}/P2', 'book/{symbol}/P3', 'book/{symbol}/R0', 'stats1/{key}:{size}:{symbol}/{side}/{section}', 'stats1/{key}:{size}:{symbol}/long/last', 'stats1/{key}:{size}:{symbol}/long/hist', 'stats1/{key}:{size}:{symbol}/short/last', 'stats1/{key}:{size}:{symbol}/short/hist', 'candles/trade:{timeframe}:{symbol}/{section}', 'candles/trade:{timeframe}:{symbol}/last', 'candles/trade:{timeframe}:{symbol}/hist'],
             'post': ['calc/trade/avg']
           },
           'private': {
@@ -102,367 +96,897 @@ function (_bitfinex) {
             'id': 'tAVTBTC',
             'symbol': 'AVT/BTC',
             'base': 'AVT',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tAVT',
+            'quoteId': 'tBTC'
           },
           'AVT/ETH': {
             'id': 'tAVTETH',
             'symbol': 'AVT/ETH',
             'base': 'AVT',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tAVT',
+            'quoteId': 'tETH'
           },
           'AVT/USD': {
             'id': 'tAVTUSD',
             'symbol': 'AVT/USD',
             'base': 'AVT',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tAVT',
+            'quoteId': 'zUSD'
           },
           'CST_BCC/BTC': {
             'id': 'tBCCBTC',
             'symbol': 'CST_BCC/BTC',
             'base': 'CST_BCC',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tBCC',
+            'quoteId': 'tBTC'
           },
           'CST_BCC/USD': {
             'id': 'tBCCUSD',
             'symbol': 'CST_BCC/USD',
             'base': 'CST_BCC',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBCC',
+            'quoteId': 'zUSD'
           },
           'BCH/BTC': {
             'id': 'tBCHBTC',
             'symbol': 'BCH/BTC',
             'base': 'BCH',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tBCH',
+            'quoteId': 'tBTC'
           },
           'BCH/ETH': {
             'id': 'tBCHETH',
             'symbol': 'BCH/ETH',
             'base': 'BCH',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tBCH',
+            'quoteId': 'tETH'
           },
           'BCH/USD': {
             'id': 'tBCHUSD',
             'symbol': 'BCH/USD',
             'base': 'BCH',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBCH',
+            'quoteId': 'zUSD'
           },
           'CST_BCU/BTC': {
             'id': 'tBCUBTC',
             'symbol': 'CST_BCU/BTC',
             'base': 'CST_BCU',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tBCU',
+            'quoteId': 'tBTC'
           },
           'CST_BCU/USD': {
             'id': 'tBCUUSD',
             'symbol': 'CST_BCU/USD',
             'base': 'CST_BCU',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBCU',
+            'quoteId': 'zUSD'
           },
           'BT1/BTC': {
             'id': 'tBT1BTC',
             'symbol': 'BT1/BTC',
             'base': 'BT1',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tBT1',
+            'quoteId': 'tBTC'
           },
           'BT1/USD': {
             'id': 'tBT1USD',
             'symbol': 'BT1/USD',
             'base': 'BT1',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBT1',
+            'quoteId': 'zUSD'
           },
           'BT2/BTC': {
             'id': 'tBT2BTC',
             'symbol': 'BT2/BTC',
             'base': 'BT2',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tBT2',
+            'quoteId': 'tBTC'
           },
           'BT2/USD': {
             'id': 'tBT2USD',
             'symbol': 'BT2/USD',
             'base': 'BT2',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBT2',
+            'quoteId': 'zUSD'
           },
           'BTC/USD': {
             'id': 'tBTCUSD',
             'symbol': 'BTC/USD',
             'base': 'BTC',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBTC',
+            'quoteId': 'zUSD'
           },
           'BTC/EUR': {
             'id': 'tBTCEUR',
             'symbol': 'BTC/EUR',
             'base': 'BTC',
-            'quote': 'EUR'
+            'quote': 'EUR',
+            'baseId': 'tBTC',
+            'quoteId': 'zEUR'
           },
           'BTG/BTC': {
             'id': 'tBTGBTC',
             'symbol': 'BTG/BTC',
             'base': 'BTG',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tBTG',
+            'quoteId': 'tBTC'
           },
           'BTG/USD': {
             'id': 'tBTGUSD',
             'symbol': 'BTG/USD',
             'base': 'BTG',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tBTG',
+            'quoteId': 'zUSD'
           },
           'DASH/BTC': {
             'id': 'tDSHBTC',
             'symbol': 'DASH/BTC',
             'base': 'DASH',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tDASH',
+            'quoteId': 'tBTC'
           },
           'DASH/USD': {
             'id': 'tDSHUSD',
             'symbol': 'DASH/USD',
             'base': 'DASH',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tDASH',
+            'quoteId': 'zUSD'
           },
           'DAT/BTC': {
             'id': 'tDATBTC',
             'symbol': 'DAT/BTC',
             'base': 'DAT',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tDAT',
+            'quoteId': 'tBTC'
           },
           'DAT/ETH': {
             'id': 'tDATETH',
             'symbol': 'DAT/ETH',
             'base': 'DAT',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tDAT',
+            'quoteId': 'tETH'
           },
           'DAT/USD': {
             'id': 'tDATUSD',
             'symbol': 'DAT/USD',
             'base': 'DAT',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tDAT',
+            'quoteId': 'zUSD'
           },
           'EDO/BTC': {
             'id': 'tEDOBTC',
             'symbol': 'EDO/BTC',
             'base': 'EDO',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tEDO',
+            'quoteId': 'tBTC'
           },
           'EDO/ETH': {
             'id': 'tEDOETH',
             'symbol': 'EDO/ETH',
             'base': 'EDO',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tEDO',
+            'quoteId': 'tETH'
           },
           'EDO/USD': {
             'id': 'tEDOUSD',
             'symbol': 'EDO/USD',
             'base': 'EDO',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tEDO',
+            'quoteId': 'zUSD'
           },
           'EOS/BTC': {
             'id': 'tEOSBTC',
             'symbol': 'EOS/BTC',
             'base': 'EOS',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tEOS',
+            'quoteId': 'tBTC'
           },
           'EOS/ETH': {
             'id': 'tEOSETH',
             'symbol': 'EOS/ETH',
             'base': 'EOS',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tEOS',
+            'quoteId': 'tETH'
           },
           'EOS/USD': {
             'id': 'tEOSUSD',
             'symbol': 'EOS/USD',
             'base': 'EOS',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tEOS',
+            'quoteId': 'zUSD'
           },
           'ETC/BTC': {
             'id': 'tETCBTC',
             'symbol': 'ETC/BTC',
             'base': 'ETC',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tETC',
+            'quoteId': 'tBTC'
           },
           'ETC/USD': {
             'id': 'tETCUSD',
             'symbol': 'ETC/USD',
             'base': 'ETC',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tETC',
+            'quoteId': 'zUSD'
           },
           'ETH/BTC': {
             'id': 'tETHBTC',
             'symbol': 'ETH/BTC',
             'base': 'ETH',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tETH',
+            'quoteId': 'tBTC'
           },
           'ETH/USD': {
             'id': 'tETHUSD',
             'symbol': 'ETH/USD',
             'base': 'ETH',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tETH',
+            'quoteId': 'zUSD'
           },
           'ETP/BTC': {
             'id': 'tETPBTC',
             'symbol': 'ETP/BTC',
             'base': 'ETP',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tETP',
+            'quoteId': 'tBTC'
           },
           'ETP/ETH': {
             'id': 'tETPETH',
             'symbol': 'ETP/ETH',
             'base': 'ETP',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tETP',
+            'quoteId': 'tETH'
           },
           'ETP/USD': {
             'id': 'tETPUSD',
             'symbol': 'ETP/USD',
             'base': 'ETP',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tETP',
+            'quoteId': 'zUSD'
           },
           'IOTA/BTC': {
             'id': 'tIOTBTC',
             'symbol': 'IOTA/BTC',
             'base': 'IOTA',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tIOTA',
+            'quoteId': 'tBTC'
           },
           'IOTA/ETH': {
             'id': 'tIOTETH',
             'symbol': 'IOTA/ETH',
             'base': 'IOTA',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tIOTA',
+            'quoteId': 'tETH'
           },
           'IOTA/USD': {
             'id': 'tIOTUSD',
             'symbol': 'IOTA/USD',
             'base': 'IOTA',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tIOTA',
+            'quoteId': 'zUSD'
           },
           'LTC/BTC': {
             'id': 'tLTCBTC',
             'symbol': 'LTC/BTC',
             'base': 'LTC',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tLTC',
+            'quoteId': 'tBTC'
           },
           'LTC/USD': {
             'id': 'tLTCUSD',
             'symbol': 'LTC/USD',
             'base': 'LTC',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tLTC',
+            'quoteId': 'zUSD'
           },
           'NEO/BTC': {
             'id': 'tNEOBTC',
             'symbol': 'NEO/BTC',
             'base': 'NEO',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tNEO',
+            'quoteId': 'tBTC'
           },
           'NEO/ETH': {
             'id': 'tNEOETH',
             'symbol': 'NEO/ETH',
             'base': 'NEO',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tNEO',
+            'quoteId': 'tETH'
           },
           'NEO/USD': {
             'id': 'tNEOUSD',
             'symbol': 'NEO/USD',
             'base': 'NEO',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tNEO',
+            'quoteId': 'zUSD'
           },
           'OMG/BTC': {
             'id': 'tOMGBTC',
             'symbol': 'OMG/BTC',
             'base': 'OMG',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tOMG',
+            'quoteId': 'tBTC'
           },
           'OMG/ETH': {
             'id': 'tOMGETH',
             'symbol': 'OMG/ETH',
             'base': 'OMG',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tOMG',
+            'quoteId': 'tETH'
           },
           'OMG/USD': {
             'id': 'tOMGUSD',
             'symbol': 'OMG/USD',
             'base': 'OMG',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tOMG',
+            'quoteId': 'zUSD'
           },
           'QTUM/BTC': {
             'id': 'tQTMBTC',
             'symbol': 'QTUM/BTC',
             'base': 'QTUM',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tQTUM',
+            'quoteId': 'tBTC'
           },
           'QTUM/ETH': {
             'id': 'tQTMETH',
             'symbol': 'QTUM/ETH',
             'base': 'QTUM',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tQTUM',
+            'quoteId': 'tETH'
           },
           'QTUM/USD': {
             'id': 'tQTMUSD',
             'symbol': 'QTUM/USD',
             'base': 'QTUM',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tQTUM',
+            'quoteId': 'zUSD'
           },
           'RRT/BTC': {
             'id': 'tRRTBTC',
             'symbol': 'RRT/BTC',
             'base': 'RRT',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tRRT',
+            'quoteId': 'tBTC'
           },
           'RRT/USD': {
             'id': 'tRRTUSD',
             'symbol': 'RRT/USD',
             'base': 'RRT',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tRRT',
+            'quoteId': 'zUSD'
           },
           'SAN/BTC': {
             'id': 'tSANBTC',
             'symbol': 'SAN/BTC',
             'base': 'SAN',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tSAN',
+            'quoteId': 'tBTC'
           },
           'SAN/ETH': {
             'id': 'tSANETH',
             'symbol': 'SAN/ETH',
             'base': 'SAN',
-            'quote': 'ETH'
+            'quote': 'ETH',
+            'baseId': 'tSAN',
+            'quoteId': 'tETH'
           },
           'SAN/USD': {
             'id': 'tSANUSD',
             'symbol': 'SAN/USD',
             'base': 'SAN',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tSAN',
+            'quoteId': 'zUSD'
           },
           'XMR/BTC': {
             'id': 'tXMRBTC',
             'symbol': 'XMR/BTC',
             'base': 'XMR',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tXMR',
+            'quoteId': 'tBTC'
           },
           'XMR/USD': {
             'id': 'tXMRUSD',
             'symbol': 'XMR/USD',
             'base': 'XMR',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tXMR',
+            'quoteId': 'zUSD'
           },
           'XRP/BTC': {
             'id': 'tXRPBTC',
             'symbol': 'XRP/BTC',
             'base': 'XRP',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tXRP',
+            'quoteId': 'tBTC'
           },
           'XRP/USD': {
             'id': 'tXRPUSD',
             'symbol': 'XRP/USD',
             'base': 'XRP',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tXRP',
+            'quoteId': 'zUSD'
           },
           'ZEC/BTC': {
             'id': 'tZECBTC',
             'symbol': 'ZEC/BTC',
             'base': 'ZEC',
-            'quote': 'BTC'
+            'quote': 'BTC',
+            'baseId': 'tZEC',
+            'quoteId': 'tBTC'
           },
           'ZEC/USD': {
             'id': 'tZECUSD',
             'symbol': 'ZEC/USD',
             'base': 'ZEC',
-            'quote': 'USD'
+            'quote': 'USD',
+            'baseId': 'tZEC',
+            'quoteId': 'zUSD'
+          },
+          'YYW/USD': {
+            'id': 'tYYWUSD',
+            'symbol': 'YYW/USD',
+            'base': 'YYW',
+            'quote': 'USD',
+            'baseId': 'tYYW',
+            'quoteId': 'zUSD'
+          },
+          'YYW/BTC': {
+            'id': 'tYYWBTC',
+            'symbol': 'YYW/BTC',
+            'base': 'YYW',
+            'quote': 'BTC',
+            'baseId': 'tYYW',
+            'quoteId': 'zBTC'
+          },
+          'YYW/ETH': {
+            'id': 'tYYWETH',
+            'symbol': 'YYW/ETH',
+            'base': 'YYW',
+            'quote': 'ETH',
+            'baseId': 'tYYW',
+            'quoteId': 'zETH'
+          },
+          'SNT/USD': {
+            'id': 'tSNTUSD',
+            'symbol': 'SNT/USD',
+            'base': 'SNT',
+            'quote': 'USD',
+            'baseId': 'tSNT',
+            'quoteId': 'zUSD'
+          },
+          'SNT/BTC': {
+            'id': 'tSNTBTC',
+            'symbol': 'SNT/BTC',
+            'base': 'SNT',
+            'quote': 'BTC',
+            'baseId': 'tSNT',
+            'quoteId': 'zBTC'
+          },
+          'SNT/ETH': {
+            'id': 'tSNTETH',
+            'symbol': 'SNT/ETH',
+            'base': 'SNT',
+            'quote': 'ETH',
+            'baseId': 'tSNT',
+            'quoteId': 'zETH'
+          },
+          'QASH/USD': {
+            'id': 'tQASHUSD',
+            'symbol': 'QASH/USD',
+            'base': 'QASH',
+            'quote': 'USD',
+            'baseId': 'tQASH',
+            'quoteId': 'zUSD'
+          },
+          'QASH/BTC': {
+            'id': 'tQASHBTC',
+            'symbol': 'QASH/BTC',
+            'base': 'QASH',
+            'quote': 'BTC',
+            'baseId': 'tQASH',
+            'quoteId': 'zBTC'
+          },
+          'QASH/ETH': {
+            'id': 'tQASHETH',
+            'symbol': 'QASH/ETH',
+            'base': 'QASH',
+            'quote': 'ETH',
+            'baseId': 'tQASH',
+            'quoteId': 'zETH'
+          },
+          'GNT/USD': {
+            'id': 'tGNTUSD',
+            'symbol': 'GNT/USD',
+            'base': 'GNT',
+            'quote': 'USD',
+            'baseId': 'tGNT',
+            'quoteId': 'zUSD'
+          },
+          'GNT/BTC': {
+            'id': 'tGNTBTC',
+            'symbol': 'GNT/BTC',
+            'base': 'GNT',
+            'quote': 'BTC',
+            'baseId': 'tGNT',
+            'quoteId': 'zBTC'
+          },
+          'GNT/ETH': {
+            'id': 'tGNTETH',
+            'symbol': 'GNT/ETH',
+            'base': 'GNT',
+            'quote': 'ETH',
+            'baseId': 'tGNT',
+            'quoteId': 'zETH'
+          },
+          'BAT/USD': {
+            'id': 'tBATUSD',
+            'symbol': 'BAT/USD',
+            'base': 'BAT',
+            'quote': 'USD',
+            'baseId': 'tBAT',
+            'quoteId': 'zUSD'
+          },
+          'BAT/BTC': {
+            'id': 'tBATBTC',
+            'symbol': 'BAT/BTC',
+            'base': 'BAT',
+            'quote': 'BTC',
+            'baseId': 'tBAT',
+            'quoteId': 'zBTC'
+          },
+          'BAT/ETH': {
+            'id': 'tBATETH',
+            'symbol': 'BAT/ETH',
+            'base': 'BAT',
+            'quote': 'ETH',
+            'baseId': 'tBAT',
+            'quoteId': 'zETH'
+          },
+          'SPK/USD': {
+            'id': 'tSPKUSD',
+            'symbol': 'SPK/USD',
+            'base': 'SPK',
+            'quote': 'USD',
+            'baseId': 'tSPK',
+            'quoteId': 'zUSD'
+          },
+          'SPK/BTC': {
+            'id': 'tSPKBTC',
+            'symbol': 'SPK/BTC',
+            'base': 'SPK',
+            'quote': 'BTC',
+            'baseId': 'tSPK',
+            'quoteId': 'zBTC'
+          },
+          'SPK/ETH': {
+            'id': 'tSPKETH',
+            'symbol': 'SPK/ETH',
+            'base': 'SPK',
+            'quote': 'ETH',
+            'baseId': 'tSPK',
+            'quoteId': 'zETH'
+          },
+          'TRX/USD': {
+            'id': 'tTRXUSD',
+            'symbol': 'TRX/USD',
+            'base': 'TRX',
+            'quote': 'USD',
+            'baseId': 'tTRX',
+            'quoteId': 'zUSD'
+          },
+          'TRX/BTC': {
+            'id': 'tTRXBTC',
+            'symbol': 'TRX/BTC',
+            'base': 'TRX',
+            'quote': 'BTC',
+            'baseId': 'tTRX',
+            'quoteId': 'zBTC'
+          },
+          'TRX/ETH': {
+            'id': 'tTRXETH',
+            'symbol': 'TRX/ETH',
+            'base': 'TRX',
+            'quote': 'ETH',
+            'baseId': 'tTRX',
+            'quoteId': 'zETH'
+          },
+          'ELF/USD': {
+            'id': 'tELFUSD',
+            'symbol': 'ELF/USD',
+            'base': 'ELF',
+            'quote': 'USD',
+            'baseId': 'tELF',
+            'quoteId': 'zUSD'
+          },
+          'ELF/BTC': {
+            'id': 'tELFBTC',
+            'symbol': 'ELF/BTC',
+            'base': 'ELF',
+            'quote': 'BTC',
+            'baseId': 'tELF',
+            'quoteId': 'zBTC'
+          },
+          'ELF/ETH': {
+            'id': 'tELFETH',
+            'symbol': 'ELF/ETH',
+            'base': 'ELF',
+            'quote': 'ETH',
+            'baseId': 'tELF',
+            'quoteId': 'zETH'
+          },
+          'RCN/USD': {
+            'id': 'tRCNUSD',
+            'symbol': 'RCN/USD',
+            'base': 'RCN',
+            'quote': 'USD',
+            'baseId': 'tRCN',
+            'quoteId': 'zUSD'
+          },
+          'RCN/BTC': {
+            'id': 'tRCNBTC',
+            'symbol': 'RCN/BTC',
+            'base': 'RCN',
+            'quote': 'BTC',
+            'baseId': 'tRCN',
+            'quoteId': 'zBTC'
+          },
+          'RCN/ETH': {
+            'id': 'tRCNETH',
+            'symbol': 'RCN/ETH',
+            'base': 'RCN',
+            'quote': 'ETH',
+            'baseId': 'tRCN',
+            'quoteId': 'zETH'
+          },
+          'FUN/USD': {
+            'id': 'tFUNUSD',
+            'symbol': 'FUN/USD',
+            'base': 'FUN',
+            'quote': 'USD',
+            'baseId': 'tFUN',
+            'quoteId': 'zUSD'
+          },
+          'FUN/BTC': {
+            'id': 'tFUNBTC',
+            'symbol': 'FUN/BTC',
+            'base': 'FUN',
+            'quote': 'BTC',
+            'baseId': 'tFUN',
+            'quoteId': 'zBTC'
+          },
+          'FUN/ETH': {
+            'id': 'tFUNETH',
+            'symbol': 'FUN/ETH',
+            'base': 'FUN',
+            'quote': 'ETH',
+            'baseId': 'tFUN',
+            'quoteId': 'zETH '
+          },
+          'MNA/USD': {
+            'id': 'tMNAUSD',
+            'symbol': 'MNA/USD',
+            'base': 'MNA',
+            'quote': 'USD',
+            'baseId': 'tMNA',
+            'quoteId': 'zUSD'
+          },
+          'MNA/BTC': {
+            'id': 'tMNABTC',
+            'symbol': 'MNA/BTC',
+            'base': 'MNA',
+            'quote': 'BTC',
+            'baseId': 'tMNA',
+            'quoteId': 'zBTC'
+          },
+          'MNA/ETH': {
+            'id': 'tMNAETH',
+            'symbol': 'MNA/ETH',
+            'base': 'MNA',
+            'quote': 'ETH',
+            'baseId': 'tMNA',
+            'quoteId': 'zETH'
+          },
+          'AID/USD': {
+            'id': 'tAIDUSD',
+            'symbol': 'AID/USD',
+            'base': 'AID',
+            'quote': 'USD',
+            'baseId': 'tAID',
+            'quoteId': 'zUSD'
+          },
+          'AID/BTC': {
+            'id': 'tAIDBTC',
+            'symbol': 'AID/BTC',
+            'base': 'AID',
+            'quote': 'BTC',
+            'baseId': 'tAID',
+            'quoteId': 'zBTC'
+          },
+          'AID/ETH': {
+            'id': 'tAIDETH',
+            'symbol': 'AID/ETH',
+            'base': 'AID',
+            'quote': 'ETH',
+            'baseId': 'tAID',
+            'quoteId': 'zETH'
+          },
+          'REP/USD': {
+            'id': 'tREPUSD',
+            'symbol': 'REP/USD',
+            'base': 'REP',
+            'quote': 'USD',
+            'baseId': 'tREP',
+            'quoteId': 'zUSD'
+          },
+          'REP/BTC': {
+            'id': 'tREPBTC',
+            'symbol': 'REP/BTC',
+            'base': 'REP',
+            'quote': 'BTC',
+            'baseId': 'tREP',
+            'quoteId': 'zBTC'
+          },
+          'REP/ETH': {
+            'id': 'tREPETH',
+            'symbol': 'REP/ETH',
+            'base': 'REP',
+            'quote': 'ETH',
+            'baseId': 'tREP',
+            'quoteId': 'zETH'
+          },
+          'SNG/USD': {
+            'id': 'tSNGUSD',
+            'symbol': 'SNG/USD',
+            'base': 'SNG',
+            'quote': 'USD',
+            'baseId': 'tSNG',
+            'quoteId': 'zUSD'
+          },
+          'SNG/BTC': {
+            'id': 'tSNGBTC',
+            'symbol': 'SNG/BTC',
+            'base': 'SNG',
+            'quote': 'BTC',
+            'baseId': 'tSNG',
+            'quoteId': 'zBTC'
+          },
+          'SNG/ETH': {
+            'id': 'tSNGETH',
+            'symbol': 'SNG/ETH',
+            'base': 'SNG',
+            'quote': 'ETH',
+            'baseId': 'tSNG',
+            'quoteId': 'zETH'
+          },
+          'RLC/USD': {
+            'id': 'tRLCUSD',
+            'symbol': 'RLC/USD',
+            'base': 'RLC',
+            'quote': 'USD',
+            'baseId': 'tRLC',
+            'quoteId': 'zUSD'
+          },
+          'RLC/BTC': {
+            'id': 'tRLCBTC',
+            'symbol': 'RLC/BTC',
+            'base': 'RLC',
+            'quote': 'BTC',
+            'baseId': 'tRLC',
+            'quoteId': 'zBTC'
+          },
+          'RLC/ETH': {
+            'id': 'tRLCETH',
+            'symbol': 'RLC/ETH',
+            'base': 'RLC',
+            'quote': 'ETH',
+            'baseId': 'tRLC',
+            'quoteId': 'zETH'
+          },
+          'TNB/USD': {
+            'id': 'tTNBUSD',
+            'symbol': 'TNB/USD',
+            'base': 'TNB',
+            'quote': 'USD',
+            'baseId': 'tTNB',
+            'quoteId': 'zUSD'
+          },
+          'TNB/BTC': {
+            'id': 'tTNBBTC',
+            'symbol': 'TNB/BTC',
+            'base': 'TNB',
+            'quote': 'BTC',
+            'baseId': 'tTNB',
+            'quoteId': 'zBTC'
+          },
+          'TNB/ETH': {
+            'id': 'tTNBETH',
+            'symbol': 'TNB/ETH',
+            'base': 'TNB',
+            'quote': 'ETH',
+            'baseId': 'tTNB',
+            'quoteId': 'zETH'
+          },
+          'ZRX/USD': {
+            'id': 'tZRXUSD',
+            'symbol': 'ZRX/USD',
+            'base': 'ZRX',
+            'quote': 'USD',
+            'baseId': 'tZRX',
+            'quoteId': 'zUSD'
+          },
+          'ZRX/BTC': {
+            'id': 'tZRXBTC',
+            'symbol': 'ZRX/BTC',
+            'base': 'ZRX',
+            'quote': 'BTC',
+            'baseId': 'tZRX',
+            'quoteId': 'zBTC'
+          },
+          'ZRX/ETH': {
+            'id': 'tZRXETH',
+            'symbol': 'ZRX/ETH',
+            'base': 'ZRX',
+            'quote': 'ETH',
+            'baseId': 'tZRX',
+            'quoteId': 'zETH'
           }
         },
         'fees': {
@@ -492,7 +1016,13 @@ function (_bitfinex) {
               'DAT': 1.0,
               'AVT': 0.5,
               'SAN': 0.1,
-              'USDT': 5.0
+              'USDT': 5.0,
+              'SPK': 9.2784,
+              'BAT': 9.0883,
+              'GNT': 8.2881,
+              'SNT': 14.303,
+              'QASH': 3.2428,
+              'YYW': 18.055
             }
           }
         }
@@ -501,12 +1031,16 @@ function (_bitfinex) {
   }, {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
-      // issue #4 Bitfinex names Dash as DSH, instead of DASH
-      if (currency == 'DSH') return 'DASH';
-      if (currency == 'QTM') return 'QTUM'; // issue #796
-
-      if (currency == 'IOT') return 'IOTA';
-      return currency;
+      var currencies = {
+        'DSH': 'DASH',
+        // Bitfinex names Dash as DSH, instead of DASH
+        'QTM': 'QTUM',
+        'BCC': 'CST_BCC',
+        'BCU': 'CST_BCU',
+        'IOT': 'IOTA',
+        'DAT': 'DATA'
+      };
+      return currency in currencies ? currencies[currency] : currency;
     }
   }, {
     key: "fetchBalance",
@@ -549,8 +1083,8 @@ function (_bitfinex) {
                   balance = response[b];
                   _balance = _slicedToArray(balance, 5), accountType = _balance[0], currency = _balance[1], total = _balance[2], interest = _balance[3], available = _balance[4];
 
-                  if (accountType == balanceType) {
-                    if (currency[0] == 't') currency = currency.slice(1);
+                  if (accountType === balanceType) {
+                    if (currency[0] === 't') currency = currency.slice(1);
                     uppercase = currency.toUpperCase();
                     uppercase = this.commonCurrencyCode(uppercase);
                     account = this.account();
@@ -807,15 +1341,8 @@ function (_bitfinex) {
                 request = {
                   'symbol': market['id']
                 };
-
-                if (since) {
-                  request['start'] = since;
-                }
-
-                if (limit) {
-                  request['limit'] = limit;
-                }
-
+                if (typeof since !== 'undefined') request['start'] = since;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context5.next = 9;
                 return this.publicGetTradesSymbolHist(this.extend(request, params));
 
@@ -860,10 +1387,11 @@ function (_bitfinex) {
                 market = this.market(symbol);
                 request = {
                   'symbol': market['id'],
-                  'timeframe': this.timeframes[timeframe]
+                  'timeframe': this.timeframes[timeframe],
+                  'sort': 1
                 };
-                if (limit) request['limit'] = limit;
-                if (since) request['start'] = since;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
+                if (typeof since !== 'undefined') request['start'] = since;
                 request = this.extend(request, params);
                 _context6.next = 11;
                 return this.publicGetCandlesTradeTimeframeSymbolHist(request);
@@ -955,16 +1483,18 @@ function (_bitfinex) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
             switch (_context9.prev = _context9.next) {
               case 0:
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
                 throw new NotSupported(this.id + ' withdraw not implemented yet');
 
-              case 2:
+              case 3:
               case "end":
                 return _context9.stop();
             }
@@ -993,7 +1523,7 @@ function (_bitfinex) {
       var query = this.omit(params, this.extractParams(path));
       var url = this.urls['api'] + '/' + request;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) {
           url += '?' + this.urlencode(query);
         }
@@ -1070,7 +1600,7 @@ function (_bitfinex) {
                 return _context10.abrupt("return", response);
 
               case 16:
-                if (!(response == '')) {
+                if (!(response === '')) {
                   _context10.next = 18;
                   break;
                 }

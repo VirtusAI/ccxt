@@ -21,8 +21,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
-    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -42,10 +41,12 @@ function (_Exchange) {
       return this.deepExtend(_get(coinmate.prototype.__proto__ || _Object$getPrototypeOf(coinmate.prototype), "describe", this).call(this), {
         'id': 'coinmate',
         'name': 'CoinMate',
-        'countries': ['GB', 'CZ'],
+        'countries': ['GB', 'CZ', 'EU'],
         // UK, Czech Republic
         'rateLimit': 1000,
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27811229-c1efb510-606c-11e7-9a36-84ba2ce412d8.jpg',
           'api': 'https://coinmate.io/api',
@@ -356,7 +357,7 @@ function (_Exchange) {
                 }
 
                 _context5.next = 7;
-                return this[method](self.extend(order, params));
+                return this[method](this.extend(order, params));
 
               case 7:
                 response = _context5.sent;

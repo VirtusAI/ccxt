@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -48,14 +48,17 @@ function (_Exchange) {
         'rateLimit': 1000,
         // once every 350 ms ≈ 180 requests per minute ≈ 3 requests per second
         'version': 'v1',
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766491-1b0ea956-5eda-11e7-9225-40d67b481b8d.jpg',
           'api': 'https://api.exmo.com',
           'www': 'https://exmo.me',
-          'doc': ['https://exmo.me/en/api_doc', 'https://github.com/exmo-dev/exmo_api_lib/tree/master/nodejs']
+          'doc': ['https://exmo.me/en/api_doc', 'https://github.com/exmo-dev/exmo_api_lib/tree/master/nodejs'],
+          'fees': 'https://exmo.com/en/docs/fees'
         },
         'api': {
           'public': {
@@ -69,6 +72,27 @@ function (_Exchange) {
           'trading': {
             'maker': 0.2 / 100,
             'taker': 0.2 / 100
+          },
+          'funding': {
+            'withdraw': {
+              'BTC': 0.001,
+              'LTC': 0.01,
+              'DOGE': 1,
+              'DASH': 0.01,
+              'ETH': 0.01,
+              'WAVES': 0.001,
+              'ZEC': 0.001,
+              'USDT': 25,
+              'XMR': 0.05,
+              'XRP': 0.02,
+              'KICK': 350,
+              'ETC': 0.01,
+              'BCH': 0.001
+            },
+            'deposit': {
+              'USDT': 15,
+              'KICK': 50
+            }
           }
         }
       });
@@ -204,6 +228,7 @@ function (_Exchange) {
         var params,
             market,
             response,
+            result,
             orderbook,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
@@ -223,10 +248,14 @@ function (_Exchange) {
 
               case 6:
                 response = _context3.sent;
-                orderbook = response[market['id']];
-                return _context3.abrupt("return", this.parseOrderBook(orderbook, undefined, 'bid', 'ask'));
+                result = response[market['id']];
+                orderbook = this.parseOrderBook(result, undefined, 'bid', 'ask');
+                return _context3.abrupt("return", this.extend(orderbook, {
+                  'bids': this.sortBy(orderbook['bids'], 0, true),
+                  'asks': this.sortBy(orderbook['asks'], 0)
+                }));
 
-              case 9:
+              case 10:
               case "end":
                 return _context3.stop();
             }
@@ -447,8 +476,8 @@ function (_Exchange) {
 
               case 4:
                 prefix = '';
-                if (type == 'market') prefix = 'market_';
-                if (typeof price == 'undefined') price = 0;
+                if (type === 'market') prefix = 'market_';
+                if (typeof price === 'undefined') price = 0;
                 order = {
                   'pair': this.marketId(symbol),
                   'quantity': amount,
@@ -522,33 +551,35 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             result,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
             switch (_context9.prev = _context9.next) {
               case 0:
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
-                _context9.next = 3;
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
+                _context9.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context9.next = 5;
+              case 4:
+                _context9.next = 6;
                 return this.privatePostWithdrawCrypt(this.extend({
                   'amount': amount,
                   'currency': currency,
                   'address': address
                 }, params));
 
-              case 5:
+              case 6:
                 result = _context9.sent;
                 return _context9.abrupt("return", {
                   'info': result,
                   'id': result['task_id']
                 });
 
-              case 7:
+              case 8:
               case "end":
                 return _context9.stop();
             }
@@ -570,7 +601,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
       } else {
         this.checkRequiredCredentials();

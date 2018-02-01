@@ -44,10 +44,8 @@ function (_Exchange) {
         'countries': ['GB', 'SG', 'ZA'],
         'rateLimit': 10000,
         'version': '1',
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasFetchOrder': true,
         'has': {
+          'CORS': false,
           'fetchTickers': true,
           'fetchOrder': true
         },
@@ -161,11 +159,11 @@ function (_Exchange) {
                   reserved = parseFloat(balance['reserved']);
                   unconfirmed = parseFloat(balance['unconfirmed']);
                   account = {
-                    'free': parseFloat(balance['balance']),
+                    'free': 0.0,
                     'used': this.sum(reserved, unconfirmed),
-                    'total': 0.0
+                    'total': parseFloat(balance['balance'])
                   };
-                  account['total'] = this.sum(account['free'], account['used']);
+                  account['free'] = account['total'] - account['used'];
                   result[currency] = account;
                 }
 
@@ -287,8 +285,8 @@ function (_Exchange) {
 
               case 4:
                 _context4.next = 6;
-                return this.privateGetOrders(this.extend({
-                  'id': id.toString()
+                return this.privateGetOrdersId(this.extend({
+                  'id': id
                 }, params));
 
               case 6:

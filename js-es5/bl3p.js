@@ -43,7 +43,9 @@ function (_Exchange) {
         'rateLimit': 1000,
         'version': '1',
         'comment': 'An exchange market by BitonicNL',
-        'hasCORS': false,
+        'has': {
+          'CORS': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28501752-60c21b82-6feb-11e7-818b-055ee6d0e754.jpg',
           'api': 'https://api.bl3p.eu',
@@ -66,8 +68,15 @@ function (_Exchange) {
             'quote': 'EUR',
             'maker': 0.0025,
             'taker': 0.0025
-          } // 'LTC/EUR': { 'id': 'LTCEUR', 'symbol': 'LTC/EUR', 'base': 'LTC', 'quote': 'EUR' },
-
+          },
+          'LTC/EUR': {
+            'id': 'LTCEUR',
+            'symbol': 'LTC/EUR',
+            'base': 'LTC',
+            'quote': 'EUR',
+            'maker': 0.0025,
+            'taker': 0.0025
+          }
         }
       });
     }
@@ -249,15 +258,15 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade, market) {
       return {
-        'id': trade['trade_id'],
-        'info': trade,
+        'id': trade['trade_id'].toString(),
         'timestamp': trade['date'],
         'datetime': this.iso8601(trade['date']),
         'symbol': market['symbol'],
         'type': undefined,
         'side': undefined,
         'price': trade['price_int'] / 100000.0,
-        'amount': trade['amount_int'] / 100000000.0
+        'amount': trade['amount_int'] / 100000000.0,
+        'info': trade
       };
     }
   }, {
@@ -324,11 +333,11 @@ function (_Exchange) {
                 market = this.market(symbol);
                 order = {
                   'market': market['id'],
-                  'amount_int': amount,
+                  'amount_int': parseInt(amount * 100000000),
                   'fee_currency': market['quote'],
                   'type': side == 'buy' ? 'bid' : 'ask'
                 };
-                if (type == 'limit') order['price_int'] = price;
+                if (type == 'limit') order['price_int'] = parseInt(price * 100000.0);
                 _context5.next = 7;
                 return this.privatePostMarketMoneyOrderAdd(this.extend(order, params));
 
@@ -336,7 +345,7 @@ function (_Exchange) {
                 response = _context5.sent;
                 return _context5.abrupt("return", {
                   'info': response,
-                  'id': response['order_id'].toString()
+                  'id': response['data']['order_id'].toString()
                 });
 
               case 9:
@@ -412,7 +421,7 @@ function (_Exchange) {
         headers = {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Rest-Key': this.apiKey,
-          'Rest-Sign': signature
+          'Rest-Sign': this.decode(signature)
         };
       }
 

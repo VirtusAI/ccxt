@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -46,8 +46,10 @@ function (_Exchange) {
         'rateLimit': 1000,
         'countries': ['PA', 'BG', 'CN', 'US'],
         // Panama, Bulgaria, China, US
-        'hasFetchTickers': true,
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28619707-5c9232a8-7212-11e7-86d6-98fe5d15cc6e.jpg',
           'api': {
@@ -117,13 +119,25 @@ function (_Exchange) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
+                response = undefined;
+                _context.prev = 1;
                 this.parseJsonResponse = false;
-                _context.next = 3;
+                _context.next = 5;
                 return this.wwwGet();
 
-              case 3:
+              case 5:
                 response = _context.sent;
                 this.parseJsonResponse = true;
+                _context.next = 13;
+                break;
+
+              case 9:
+                _context.prev = 9;
+                _context.t0 = _context["catch"](1);
+                this.parseJsonResponse = true;
+                throw _context.t0;
+
+              case 13:
                 parts = response.split('do=currencyPairSelector-selectCurrencyPair" class="active">');
                 currencyParts = parts[1].split('<div class="currency-pair-label">');
                 result = [];
@@ -169,12 +183,12 @@ function (_Exchange) {
 
                 return _context.abrupt("return", result);
 
-              case 10:
+              case 18:
               case "end":
                 return _context.stop();
             }
           }
-        }, _callee, this);
+        }, _callee, this, [[1, 9]]);
       }));
 
       return function fetchMarkets() {
@@ -329,7 +343,6 @@ function (_Exchange) {
         'quoteVolume': ticker['counterVolume'],
         'info': ticker
       };
-      return ticker;
     }
   }, {
     key: "fetchTickers",
@@ -528,7 +541,7 @@ function (_Exchange) {
                   'currencyPair': this.marketId(symbol),
                   'volume': amount,
                   'price': price,
-                  'orderType': side == 'buy' ? 0 : 1
+                  'orderType': side === 'buy' ? 0 : 1
                 };
                 _context7.next = 7;
                 return this.userPostAddOrder(this.extend(order, params));
@@ -601,15 +614,15 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api];
 
-      if (api != 'www') {
+      if (api !== 'www') {
         url += '/' + api + '/' + this.implodeParams(path, params);
       }
 
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'current') {
+      if (api === 'current') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
-      } else if (api == 'user') {
+      } else if (api === 'user') {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         var request = this.extend({
@@ -659,7 +672,7 @@ function (_Exchange) {
               case 7:
                 response = _context9.sent;
 
-                if (!(typeof response != 'string')) {
+                if (!(typeof response !== 'string')) {
                   _context9.next = 11;
                   break;
                 }

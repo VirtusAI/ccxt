@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -44,9 +44,11 @@ function (_Exchange) {
         'countries': ['JP', 'SG', 'HK', 'NZ'],
         'version': '2',
         'rateLimit': 1500,
-        'hasCORS': false,
-        'hasFetchTrades': false,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'fetchTrades': false,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27765983-fd8595da-5ec9-11e7-82e3-adb3ab8c2612.jpg',
           'api': 'https://anxpro.com/api',
@@ -276,7 +278,6 @@ function (_Exchange) {
             timestamp,
             bid,
             ask,
-            vwap,
             baseVolume,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
@@ -296,8 +297,6 @@ function (_Exchange) {
                 timestamp = parseInt(t / 1000);
                 bid = this.safeFloat(ticker['buy'], 'value');
                 ask = this.safeFloat(ticker['sell'], 'value');
-                ;
-                vwap = parseFloat(ticker['vwap']['value']);
                 baseVolume = parseFloat(ticker['vol']['value']);
                 return _context3.abrupt("return", {
                   'symbol': symbol,
@@ -307,7 +306,7 @@ function (_Exchange) {
                   'low': parseFloat(ticker['low']['value']),
                   'bid': bid,
                   'ask': ask,
-                  'vwap': vwap,
+                  'vwap': undefined,
                   'open': undefined,
                   'close': undefined,
                   'first': undefined,
@@ -316,11 +315,11 @@ function (_Exchange) {
                   'percentage': undefined,
                   'average': parseFloat(ticker['avg']['value']),
                   'baseVolume': baseVolume,
-                  'quoteVolume': baseVolume * vwap,
+                  'quoteVolume': undefined,
                   'info': ticker
                 });
 
-              case 13:
+              case 11:
               case "end":
                 return _context3.stop();
             }
@@ -351,7 +350,7 @@ function (_Exchange) {
                 params = _args4.length > 3 && _args4[3] !== undefined ? _args4[3] : {};
                 throw new ExchangeError(this.id + ' switched off the trades endpoint, see their docs at http://docs.anxv2.apiary.io/reference/market-data/currencypairmoneytradefetch-disabled');
 
-              case 5:
+              case 4:
               case "end":
                 return _context4.stop();
             }
@@ -388,11 +387,11 @@ function (_Exchange) {
 
                 };
 
-                if (type == 'limit') {
+                if (type === 'limit') {
                   order['price_int'] = parseInt(price * market['multiplier']); // 10^5 or 10^8
                 }
 
-                order['type'] = side == 'buy' ? 'bid' : 'ask';
+                order['type'] = side === 'buy' ? 'bid' : 'ask';
                 _context5.next = 8;
                 return this.privatePostCurrencyPairMoneyOrderAdd(this.extend(order, params));
 
@@ -453,15 +452,15 @@ function (_Exchange) {
   }, {
     key: "getAmountMultiplier",
     value: function getAmountMultiplier(currency) {
-      if (currency == 'BTC') {
+      if (currency === 'BTC') {
         return 100000000;
-      } else if (currency == 'LTC') {
+      } else if (currency === 'LTC') {
         return 100000000;
-      } else if (currency == 'STR') {
+      } else if (currency === 'STR') {
         return 100000000;
-      } else if (currency == 'XRP') {
+      } else if (currency === 'XRP') {
         return 100000000;
-      } else if (currency == 'DOGE') {
+      } else if (currency === 'DOGE') {
         return 100000000;
       }
 
@@ -473,7 +472,8 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee7(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             multiplier,
             response,
             _args7 = arguments;
@@ -481,27 +481,28 @@ function (_Exchange) {
           while (1) {
             switch (_context7.prev = _context7.next) {
               case 0:
-                params = _args7.length > 3 && _args7[3] !== undefined ? _args7[3] : {};
-                _context7.next = 3;
+                tag = _args7.length > 3 && _args7[3] !== undefined ? _args7[3] : undefined;
+                params = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : {};
+                _context7.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 multiplier = this.getAmountMultiplier(currency);
-                _context7.next = 6;
+                _context7.next = 7;
                 return this.privatePostMoneyCurrencySendSimple(this.extend({
                   'currency': currency,
                   'amount_int': parseInt(amount * multiplier),
                   'address': address
                 }, params));
 
-              case 6:
+              case 7:
                 response = _context7.sent;
                 return _context7.abrupt("return", {
                   'info': response,
                   'id': response['data']['transactionId']
                 });
 
-              case 8:
+              case 9:
               case "end":
                 return _context7.stop();
             }
@@ -530,7 +531,7 @@ function (_Exchange) {
       var query = this.omit(params, this.extractParams(path));
       var url = this.urls['api'] + '/' + this.version + '/' + request;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -539,7 +540,7 @@ function (_Exchange) {
           'nonce': nonce
         }, query));
         var secret = this.base64ToBinary(this.secret);
-        var auth = request + "\0" + body;
+        var auth = request + '\0' + body;
         var signature = this.hmac(this.encode(auth), secret, 'sha512', 'base64');
         headers = {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -588,7 +589,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['result'] == 'success')) {
+                if (!(response['result'] === 'success')) {
                   _context8.next = 11;
                   break;
                 }

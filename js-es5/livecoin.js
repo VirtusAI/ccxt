@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -27,7 +27,8 @@ var _require = require('./base/errors'),
     AuthenticationError = _require.AuthenticationError,
     NotSupported = _require.NotSupported,
     InvalidOrder = _require.InvalidOrder,
-    OrderNotFound = _require.OrderNotFound; //  ---------------------------------------------------------------------------
+    OrderNotFound = _require.OrderNotFound,
+    ExchangeNotAvailable = _require.ExchangeNotAvailable; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -49,14 +50,14 @@ function (_Exchange) {
         'name': 'LiveCoin',
         'countries': ['US', 'UK', 'RU'],
         'rateLimit': 1000,
-        'hasCORS': false,
-        // obsolete metainfo interface
-        'hasFetchTickers': true,
-        'hasFetchCurrencies': true,
-        // new metainfo interface
         'has': {
+          'fetchDepositAddress': true,
+          'CORS': false,
           'fetchTickers': true,
-          'fetchCurrencies': true
+          'fetchCurrencies': true,
+          'fetchOrders': true,
+          'fetchOpenOrders': true,
+          'fetchClosedOrders': true
         },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27980768-f22fc424-638a-11e7-89c9-6010a54ff9be.jpg',
@@ -83,6 +84,11 @@ function (_Exchange) {
           }
         }
       });
+    }
+  }, {
+    key: "commonCurrencyCode",
+    value: function commonCurrencyCode(currency) {
+      return currency;
     }
   }, {
     key: "fetchMarkets",
@@ -200,7 +206,7 @@ function (_Exchange) {
                   code = this.commonCurrencyCode(id);
                   precision = 8; // default precision, todo: fix "magic constants"
 
-                  active = currency['walletStatus'] == 'normal';
+                  active = currency['walletStatus'] === 'normal';
                   result[code] = {
                     'id': id,
                     'code': code,
@@ -236,9 +242,10 @@ function (_Exchange) {
                   };
                 }
 
+                result = this.appendFiatCurrencies(result);
                 return _context2.abrupt("return", result);
 
-              case 8:
+              case 9:
               case "end":
                 return _context2.stop();
             }
@@ -250,6 +257,62 @@ function (_Exchange) {
         return _fetchCurrencies.apply(this, arguments);
       };
     }()
+  }, {
+    key: "appendFiatCurrencies",
+    value: function appendFiatCurrencies() {
+      var result = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+      var precision = 8;
+      var defaults = {
+        'info': undefined,
+        'active': true,
+        'status': 'ok',
+        'fee': undefined,
+        'precision': precision,
+        'limits': {
+          'withdraw': {
+            'min': undefined,
+            'max': undefined
+          },
+          'deposit': {
+            'min': undefined,
+            'max': undefined
+          },
+          'amount': {
+            'min': undefined,
+            'max': undefined
+          },
+          'cost': {
+            'min': undefined,
+            'max': undefined
+          },
+          'price': {
+            'min': Math.pow(10, -precision),
+            'max': Math.pow(10, precision)
+          }
+        }
+      };
+      var currencies = [{
+        'id': 'USD',
+        'code': 'USD',
+        'name': 'US Dollar'
+      }, {
+        'id': 'EUR',
+        'code': 'EUR',
+        'name': 'Euro'
+      }, {
+        'id': 'RUR',
+        'code': 'RUR',
+        'name': 'Russian ruble'
+      }];
+
+      for (var i = 0; i < currencies.length; i++) {
+        var currency = currencies[i];
+        var code = currency['code'];
+        result[code] = this.extend(defaults, currency);
+      }
+
+      return result;
+    }
   }, {
     key: "fetchBalance",
     value: function () {
@@ -287,9 +350,9 @@ function (_Exchange) {
                   currency = balance['currency'];
                   account = undefined;
                   if (currency in result) account = result[currency];else account = this.account();
-                  if (balance['type'] == 'total') account['total'] = parseFloat(balance['value']);
-                  if (balance['type'] == 'available') account['free'] = parseFloat(balance['value']);
-                  if (balance['type'] == 'trade') account['used'] = parseFloat(balance['value']);
+                  if (balance['type'] === 'total') account['total'] = parseFloat(balance['value']);
+                  if (balance['type'] === 'available') account['free'] = parseFloat(balance['value']);
+                  if (balance['type'] === 'trade') account['used'] = parseFloat(balance['value']);
                   result[currency] = account;
                 }
 
@@ -599,9 +662,9 @@ function (_Exchange) {
         trades = undefined;
       var status = undefined;
 
-      if (order['orderStatus'] == 'OPEN' || order['orderStatus'] == 'PARTIALLY_FILLED') {
+      if (order['orderStatus'] === 'OPEN' || order['orderStatus'] === 'PARTIALLY_FILLED') {
         status = 'open';
-      } else if (order['orderStatus'] == 'EXECUTED' || order['orderStatus'] == 'PARTIALLY_FILLED_AND_CANCELLED') {
+      } else if (order['orderStatus'] === 'EXECUTED' || order['orderStatus'] === 'PARTIALLY_FILLED_AND_CANCELLED') {
         status = 'closed';
       } else {
         status = 'canceled';
@@ -691,8 +754,8 @@ function (_Exchange) {
                 pair = market ? market['id'] : undefined;
                 request = {};
                 if (pair) request['currencyPair'] = pair;
-                if (since) request['issuedFrom'] = parseInt(since);
-                if (limit) request['endRow'] = limit - 1;
+                if (typeof since !== 'undefined') request['issuedFrom'] = parseInt(since);
+                if (typeof limit !== 'undefined') request['endRow'] = limit - 1;
                 _context9.next = 15;
                 return this.privateGetExchangeClientOrders(this.extend(request, params));
 
@@ -832,7 +895,7 @@ function (_Exchange) {
                   'quantity': this.amountToPrecision(symbol, amount),
                   'currencyPair': market['id']
                 };
-                if (type == 'limit') order['price'] = this.priceToPrecision(symbol, price);
+                if (type === 'limit') order['price'] = this.priceToPrecision(symbol, price);
                 _context12.next = 10;
                 return this[method](this.extend(order, params));
 
@@ -952,6 +1015,8 @@ function (_Exchange) {
             request,
             response,
             address,
+            tag,
+            parts,
             _args14 = arguments;
         return _regeneratorRuntime.wrap(function _callee14$(_context14) {
           while (1) {
@@ -967,14 +1032,23 @@ function (_Exchange) {
               case 4:
                 response = _context14.sent;
                 address = this.safeString(response, 'wallet');
+                tag = undefined;
+
+                if (address.indexOf(':') >= 0) {
+                  parts = address.split(':');
+                  address = parts[0];
+                  tag = parts[2];
+                }
+
                 return _context14.abrupt("return", {
                   'currency': currency,
                   'address': address,
+                  'tag': tag,
                   'status': 'ok',
                   'info': response
                 });
 
-              case 7:
+              case 9:
               case "end":
                 return _context14.stop();
             }
@@ -997,15 +1071,15 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + path;
       var query = this.urlencode(this.keysort(params));
 
-      if (method == 'GET') {
+      if (method === 'GET') {
         if (_Object$keys(params).length) {
           url += '?' + query;
         }
       }
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
-        if (method == 'POST') body = query;
+        if (method === 'POST') body = query;
         var signature = this.hmac(this.encode(query), this.encode(this.secret), 'sha256');
         headers = {
           'Api-Key': this.apiKey,
@@ -1025,34 +1099,36 @@ function (_Exchange) {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
       if (code >= 300) {
-        if (body[0] == "{") {
+        if (body[0] === '{') {
           var response = JSON.parse(body);
 
           if ('errorCode' in response) {
-            var error = response['errorCode'];
+            var error = response['errorCode']; // todo: rework for error-maps, like in liqui or okcoinusd
 
-            if (error == 1) {
+            if (error === 1) {
               throw new ExchangeError(this.id + ' ' + this.json(response));
-            } else if (error == 2) {
+            } else if (error === 2) {
               if ('errorMessage' in response) {
-                if (response['errorMessage'] == 'User not found') throw new AuthenticationError(this.id + ' ' + response['errorMessage']);
+                if (response['errorMessage'] === 'User not found') throw new AuthenticationError(this.id + ' ' + response['errorMessage']);
               } else {
                 throw new ExchangeError(this.id + ' ' + this.json(response));
               }
-            } else if (error == 10 || error == 11 || error == 12 || error == 20 || error == 30 || error == 101 || error == 102) {
+            } else if (error === 10 || error === 11 || error === 12 || error === 20 || error === 30 || error === 101 || error === 102) {
               throw new AuthenticationError(this.id + ' ' + this.json(response));
-            } else if (error == 31) {
+            } else if (error === 31) {
               throw new NotSupported(this.id + ' ' + this.json(response));
-            } else if (error == 32) {
+            } else if (error === 32) {
               throw new ExchangeError(this.id + ' ' + this.json(response));
-            } else if (error == 100) {
+            } else if (error === 100) {
               throw new ExchangeError(this.id + ': Invalid parameters ' + this.json(response));
-            } else if (error == 103) {
+            } else if (error === 103) {
               throw new InvalidOrder(this.id + ': Invalid currency ' + this.json(response));
-            } else if (error == 104) {
+            } else if (error === 104) {
               throw new InvalidOrder(this.id + ': Invalid amount ' + this.json(response));
-            } else if (error == 105) {
+            } else if (error === 105) {
               throw new InvalidOrder(this.id + ': Unable to block funds ' + this.json(response));
+            } else if (error === 503) {
+              throw new ExchangeNotAvailable(this.id + ': Exchange is not available ' + this.json(response));
             } else {
               throw new ExchangeError(this.id + ' ' + this.json(response));
             }

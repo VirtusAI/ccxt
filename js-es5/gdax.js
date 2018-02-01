@@ -1,10 +1,8 @@
-"use strict"; // ----------------------------------------------------------------------------
+'use strict'; // ----------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
-
-var _Math$log = require("@babel/runtime/core-js/math/log10");
 
 var _asyncToGenerator = require("@babel/runtime/helpers/asyncToGenerator");
 
@@ -23,6 +21,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
+    InsufficientFunds = _require.InsufficientFunds,
     ExchangeError = _require.ExchangeError,
     InvalidOrder = _require.InvalidOrder,
     AuthenticationError = _require.AuthenticationError,
@@ -49,14 +48,17 @@ function (_Exchange) {
         'countries': 'US',
         'rateLimit': 1000,
         'userAgent': this.userAgents['chrome'],
-        'hasCORS': true,
-        'hasFetchOHLCV': true,
-        'hasDeposit': true,
-        'hasWithdraw': true,
-        'hasFetchOrder': true,
-        'hasFetchOrders': true,
-        'hasFetchOpenOrders': true,
-        'hasFetchClosedOrders': true,
+        'has': {
+          'CORS': true,
+          'fetchOHLCV': true,
+          'deposit': true,
+          'withdraw': true,
+          'fetchOrder': true,
+          'fetchOrders': true,
+          'fetchOpenOrders': true,
+          'fetchClosedOrders': true,
+          'fetchMyTrades': true
+        },
         'timeframes': {
           '1m': 60,
           '5m': 300,
@@ -76,7 +78,8 @@ function (_Exchange) {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766527-b1be41c6-5edb-11e7-95f6-5b496c469e2c.jpg',
           'api': 'https://api.gdax.com',
           'www': 'https://www.gdax.com',
-          'doc': 'https://docs.gdax.com'
+          'doc': 'https://docs.gdax.com',
+          'fees': ['https://www.gdax.com/fees', 'https://support.gdax.com/customer/en/portal/topics/939402-depositing-and-withdrawing-funds/articles']
         },
         'requiredCredentials': {
           'apiKey': true,
@@ -88,7 +91,7 @@ function (_Exchange) {
             'get': ['currencies', 'products', 'products/{id}/book', 'products/{id}/candles', 'products/{id}/stats', 'products/{id}/ticker', 'products/{id}/trades', 'time']
           },
           'private': {
-            'get': ['accounts', 'accounts/{id}', 'accounts/{id}/holds', 'accounts/{id}/ledger', 'coinbase-accounts', 'fills', 'funding', 'orders', 'orders/{id}', 'payment-methods', 'position', 'reports/{id}', 'users/self/trailing-volume'],
+            'get': ['accounts', 'accounts/{id}', 'accounts/{id}/holds', 'accounts/{id}/ledger', 'accounts/{id}/transfers', 'coinbase-accounts', 'fills', 'funding', 'orders', 'orders/{id}', 'payment-methods', 'position', 'reports/{id}', 'users/self/trailing-volume'],
             'post': ['deposits/coinbase-account', 'deposits/payment-method', 'funding/repay', 'orders', 'position/close', 'profiles/margin-transfer', 'reports', 'withdrawals/coinbase', 'withdrawals/crypto', 'withdrawals/payment-method'],
             'delete': ['orders', 'orders/{id}']
           }
@@ -99,20 +102,22 @@ function (_Exchange) {
             // complicated tier system per coin
             'percentage': true,
             'maker': 0.0,
-            'taker': 0.30 / 100 // worst-case scenario: https://www.gdax.com/fees/BTC-USD
+            'taker': 0.25 / 100 // Fee is 0.25%, 0.3% for ETH/LTC pairs
 
           },
           'funding': {
             'tierBased': false,
             'percentage': false,
             'withdraw': {
-              'BTC': 0.001,
-              'LTC': 0.001,
-              'ETH': 0.001,
+              'BCH': 0,
+              'BTC': 0,
+              'LTC': 0,
+              'ETH': 0,
               'EUR': 0.15,
               'USD': 25
             },
             'deposit': {
+              'BCH': 0,
               'BTC': 0,
               'LTC': 0,
               'ETH': 0,
@@ -129,7 +134,7 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, result, p, market, id, base, quote, symbol, amountLimits, priceLimits, costLimits, limits, precision, taker;
+        var markets, result, p, market, id, base, quote, symbol, priceLimits, precision, taker, active;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -147,42 +152,41 @@ function (_Exchange) {
                   base = market['base_currency'];
                   quote = market['quote_currency'];
                   symbol = base + '/' + quote;
-                  amountLimits = {
-                    'min': market['base_min_size'],
-                    'max': market['base_max_size']
-                  };
                   priceLimits = {
-                    'min': market['quote_increment'],
+                    'min': this.safeFloat(market, 'quote_increment'),
                     'max': undefined
-                  };
-                  costLimits = {
-                    'min': priceLimits['min'],
-                    'max': undefined
-                  };
-                  limits = {
-                    'amount': amountLimits,
-                    'price': priceLimits,
-                    'cost': costLimits
                   };
                   precision = {
-                    'amount': -_Math$log(parseFloat(amountLimits['min'])),
-                    'price': -_Math$log(parseFloat(priceLimits['min']))
+                    'amount': 8,
+                    'price': this.precisionFromString(this.safeString(market, 'quote_increment'))
                   };
                   taker = this.fees['trading']['taker'];
 
-                  if (base == 'ETH' || base == 'LTC') {
+                  if (base === 'ETH' || base === 'LTC') {
                     taker = 0.003;
                   }
 
+                  active = market['status'] === 'online';
                   result.push(this.extend(this.fees['trading'], {
                     'id': id,
                     'symbol': symbol,
                     'base': base,
                     'quote': quote,
-                    'info': market,
                     'precision': precision,
-                    'limits': limits,
-                    'taker': taker
+                    'limits': {
+                      'amount': {
+                        'min': this.safeFloat(market, 'base_min_size'),
+                        'max': this.safeFloat(market, 'base_max_size')
+                      },
+                      'price': priceLimits,
+                      'cost': {
+                        'min': this.safeFloat(market, 'min_market_funds'),
+                        'max': this.safeFloat(market, 'max_market_funds')
+                      }
+                    },
+                    'taker': taker,
+                    'active': active,
+                    'info': market
                   }));
                 }
 
@@ -236,9 +240,9 @@ function (_Exchange) {
                   balance = balances[b];
                   currency = balance['currency'];
                   account = {
-                    'free': parseFloat(balance['available']),
-                    'used': parseFloat(balance['hold']),
-                    'total': parseFloat(balance['balance'])
+                    'free': this.safeFloat(balance, 'available'),
+                    'used': this.safeFloat(balance, 'hold'),
+                    'total': this.safeFloat(balance, 'balance')
                   };
                   result[currency] = account;
                 }
@@ -333,8 +337,8 @@ function (_Exchange) {
                 timestamp = this.parse8601(ticker['time']);
                 bid = undefined;
                 ask = undefined;
-                if ('bid' in ticker) bid = parseFloat(ticker['bid']);
-                if ('ask' in ticker) ask = parseFloat(ticker['ask']);
+                if ('bid' in ticker) bid = this.safeFloat(ticker, 'bid');
+                if ('ask' in ticker) ask = this.safeFloat(ticker, 'ask');
                 return _context4.abrupt("return", {
                   'symbol': symbol,
                   'timestamp': timestamp,
@@ -351,7 +355,7 @@ function (_Exchange) {
                   'change': undefined,
                   'percentage': undefined,
                   'average': undefined,
-                  'baseVolume': parseFloat(ticker['volume']),
+                  'baseVolume': this.safeFloat(ticker, 'volume'),
                   'quoteVolume': undefined,
                   'info': ticker
                 });
@@ -372,72 +376,157 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var timestamp = this.parse8601(trade['time']);
-      var side = trade['side'] == 'buy' ? 'sell' : 'buy';
-      var symbol = undefined;
-      if (market) symbol = market['symbol'];
-      var fee = undefined;
+      var timestamp = undefined;
 
-      if ('fill_fees' in trade) {
-        fee = {
-          'cost': parseFloat(trade['fill_fees']),
-          'currency': market['quote']
-        };
+      if ('time' in trade) {
+        timestamp = this.parse8601(trade['time']);
+      } else if ('created_at' in trade) {
+        timestamp = this.parse8601(trade['created_at']);
       }
 
+      var iso8601 = undefined;
+      if (typeof timestamp !== 'undefined') iso8601 = this.iso8601(timestamp);
+      var side = trade['side'] === 'buy' ? 'sell' : 'buy';
+      var symbol = undefined;
+
+      if (!market) {
+        if ('product_id' in trade) {
+          var marketId = trade['product_id'];
+          if (marketId in this.markets_by_id) market = this.markets_by_id[marketId];
+        }
+      }
+
+      if (market) symbol = market['symbol'];
+      var feeRate = undefined;
+      var feeCurrency = undefined;
+
+      if (market) {
+        feeCurrency = market['quote'];
+
+        if ('liquidity' in trade) {
+          var rateType = trade['liquidity'] === 'T' ? 'taker' : 'maker';
+          feeRate = market[rateType];
+        }
+      }
+
+      var feeCost = this.safeFloat(trade, 'fill_fees');
+      if (typeof feeCost === 'undefined') feeCost = this.safeFloat(trade, 'fee');
+      var fee = {
+        'cost': feeCost,
+        'currency': feeCurrency,
+        'rate': feeRate
+      };
+      var type = undefined;
+      var id = this.safeString(trade, 'trade_id');
+      var orderId = this.safeString(trade, 'order_id');
       return {
-        'id': trade['trade_id'].toString(),
+        'id': id,
+        'order': orderId,
         'info': trade,
         'timestamp': timestamp,
-        'datetime': this.iso8601(timestamp),
+        'datetime': iso8601,
         'symbol': symbol,
-        'type': undefined,
+        'type': type,
         'side': side,
-        'price': parseFloat(trade['price']),
-        'amount': parseFloat(trade['size']),
+        'price': this.safeFloat(trade, 'price'),
+        'amount': this.safeFloat(trade, 'size'),
         'fee': fee
       };
     }
   }, {
-    key: "fetchTrades",
+    key: "fetchMyTrades",
     value: function () {
-      var _fetchTrades = _asyncToGenerator(
+      var _fetchMyTrades = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee5(symbol) {
-        var since,
+      _regeneratorRuntime.mark(function _callee5() {
+        var symbol,
+            since,
             limit,
             params,
             market,
+            request,
             response,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
+                symbol = _args5.length > 0 && _args5[0] !== undefined ? _args5[0] : undefined;
                 since = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
                 limit = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : undefined;
                 params = _args5.length > 3 && _args5[3] !== undefined ? _args5[3] : {};
-                _context5.next = 5;
+                _context5.next = 6;
+                return this.loadMarkets();
+
+              case 6:
+                market = undefined;
+                request = {};
+
+                if (typeof symbol !== 'undefined') {
+                  market = this.market(symbol);
+                  request['product_id'] = market['id'];
+                }
+
+                if (typeof limit !== 'undefined') request['limit'] = limit;
+                _context5.next = 12;
+                return this.privateGetFills(this.extend(request, params));
+
+              case 12:
+                response = _context5.sent;
+                return _context5.abrupt("return", this.parseTrades(response, market, since, limit));
+
+              case 14:
+              case "end":
+                return _context5.stop();
+            }
+          }
+        }, _callee5, this);
+      }));
+
+      return function fetchMyTrades() {
+        return _fetchMyTrades.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "fetchTrades",
+    value: function () {
+      var _fetchTrades = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee6(symbol) {
+        var since,
+            limit,
+            params,
+            market,
+            response,
+            _args6 = arguments;
+        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
+          while (1) {
+            switch (_context6.prev = _context6.next) {
+              case 0:
+                since = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : undefined;
+                limit = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : undefined;
+                params = _args6.length > 3 && _args6[3] !== undefined ? _args6[3] : {};
+                _context6.next = 5;
                 return this.loadMarkets();
 
               case 5:
                 market = this.market(symbol);
-                _context5.next = 8;
+                _context6.next = 8;
                 return this.publicGetProductsIdTrades(this.extend({
                   'id': market['id'] // fixes issue #2
 
                 }, params));
 
               case 8:
-                response = _context5.sent;
-                return _context5.abrupt("return", this.parseTrades(response, market, since, limit));
+                response = _context6.sent;
+                return _context6.abrupt("return", this.parseTrades(response, market, since, limit));
 
               case 10:
               case "end":
-                return _context5.stop();
+                return _context6.stop();
             }
           }
-        }, _callee5, this);
+        }, _callee6, this);
       }));
 
       return function fetchTrades(_x3) {
@@ -458,7 +547,7 @@ function (_Exchange) {
     value: function () {
       var _fetchOHLCV = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee6(symbol) {
+      _regeneratorRuntime.mark(function _callee7(symbol) {
         var timeframe,
             since,
             limit,
@@ -467,16 +556,16 @@ function (_Exchange) {
             granularity,
             request,
             response,
-            _args6 = arguments;
-        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
+            _args7 = arguments;
+        return _regeneratorRuntime.wrap(function _callee7$(_context7) {
           while (1) {
-            switch (_context6.prev = _context6.next) {
+            switch (_context7.prev = _context7.next) {
               case 0:
-                timeframe = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : '1m';
-                since = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : undefined;
-                limit = _args6.length > 3 && _args6[3] !== undefined ? _args6[3] : undefined;
-                params = _args6.length > 4 && _args6[4] !== undefined ? _args6[4] : {};
-                _context6.next = 6;
+                timeframe = _args7.length > 1 && _args7[1] !== undefined ? _args7[1] : '1m';
+                since = _args7.length > 2 && _args7[2] !== undefined ? _args7[2] : undefined;
+                limit = _args7.length > 3 && _args7[3] !== undefined ? _args7[3] : undefined;
+                params = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : {};
+                _context7.next = 6;
                 return this.loadMarkets();
 
               case 6:
@@ -487,26 +576,30 @@ function (_Exchange) {
                   'granularity': granularity
                 };
 
-                if (since) {
-                  request['start'] = this.iso8601(since);
-                  if (!limit) limit = 200; // max = 200
+                if (typeof since !== 'undefined') {
+                  request['start'] = this.YmdHMS(since);
 
-                  request['end'] = this.iso8601(limit * granularity * 1000 + since);
+                  if (typeof limit === 'undefined') {
+                    // https://docs.gdax.com/#get-historic-rates
+                    limit = 350; // max = 350
+                  }
+
+                  request['end'] = this.YmdHMS(this.sum(limit * granularity * 1000, since));
                 }
 
-                _context6.next = 12;
+                _context7.next = 12;
                 return this.publicGetProductsIdCandles(this.extend(request, params));
 
               case 12:
-                response = _context6.sent;
-                return _context6.abrupt("return", this.parseOHLCVs(response, market, timeframe, since, limit));
+                response = _context7.sent;
+                return _context7.abrupt("return", this.parseOHLCVs(response, market, timeframe, since, limit));
 
               case 14:
               case "end":
-                return _context6.stop();
+                return _context7.stop();
             }
           }
-        }, _callee6, this);
+        }, _callee7, this);
       }));
 
       return function fetchOHLCV(_x4) {
@@ -518,21 +611,25 @@ function (_Exchange) {
     value: function () {
       var _fetchTime = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee7() {
+      _regeneratorRuntime.mark(function _callee8() {
         var response;
-        return _regeneratorRuntime.wrap(function _callee7$(_context7) {
+        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
           while (1) {
-            switch (_context7.prev = _context7.next) {
+            switch (_context8.prev = _context8.next) {
               case 0:
-                response = this.publicGetTime();
-                return _context7.abrupt("return", this.parse8601(response['iso']));
+                _context8.next = 2;
+                return this.publicGetTime();
 
               case 2:
+                response = _context8.sent;
+                return _context8.abrupt("return", this.parse8601(response['iso']));
+
+              case 4:
               case "end":
-                return _context7.stop();
+                return _context8.stop();
             }
           }
-        }, _callee7, this);
+        }, _callee8, this);
       }));
 
       return function fetchTime() {
@@ -565,9 +662,17 @@ function (_Exchange) {
       var status = this.parseOrderStatus(order['status']);
       var price = this.safeFloat(order, 'price');
       var amount = this.safeFloat(order, 'size');
+      if (typeof amount === 'undefined') amount = this.safeFloat(order, 'funds');
+      if (typeof amount === 'undefined') amount = this.safeFloat(order, 'specified_funds');
       var filled = this.safeFloat(order, 'filled_size');
-      var remaining = amount - filled;
+      var remaining = undefined;
+      if (typeof amount !== 'undefined') if (typeof filled !== 'undefined') remaining = amount - filled;
       var cost = this.safeFloat(order, 'executed_value');
+      var fee = {
+        'cost': this.safeFloat(order, 'fill_fees'),
+        'currency': undefined,
+        'rate': undefined
+      };
       if (market) symbol = market['symbol'];
       return {
         'id': order['id'],
@@ -583,7 +688,7 @@ function (_Exchange) {
         'amount': amount,
         'filled': filled,
         'remaining': remaining,
-        'fee': undefined
+        'fee': fee
       };
     }
   }, {
@@ -591,36 +696,36 @@ function (_Exchange) {
     value: function () {
       var _fetchOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee8(id) {
+      _regeneratorRuntime.mark(function _callee9(id) {
         var symbol,
             params,
             response,
-            _args8 = arguments;
-        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+            _args9 = arguments;
+        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
-            switch (_context8.prev = _context8.next) {
+            switch (_context9.prev = _context9.next) {
               case 0:
-                symbol = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : undefined;
-                params = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : {};
-                _context8.next = 4;
+                symbol = _args9.length > 1 && _args9[1] !== undefined ? _args9[1] : undefined;
+                params = _args9.length > 2 && _args9[2] !== undefined ? _args9[2] : {};
+                _context9.next = 4;
                 return this.loadMarkets();
 
               case 4:
-                _context8.next = 6;
+                _context9.next = 6;
                 return this.privateGetOrdersId(this.extend({
                   'id': id
                 }, params));
 
               case 6:
-                response = _context8.sent;
-                return _context8.abrupt("return", this.parseOrder(response));
+                response = _context9.sent;
+                return _context9.abrupt("return", this.parseOrder(response));
 
               case 8:
               case "end":
-                return _context8.stop();
+                return _context9.stop();
             }
           }
-        }, _callee8, this);
+        }, _callee9, this);
       }));
 
       return function fetchOrder(_x5) {
@@ -631,61 +736,6 @@ function (_Exchange) {
     key: "fetchOrders",
     value: function () {
       var _fetchOrders = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee9() {
-        var symbol,
-            since,
-            limit,
-            params,
-            request,
-            market,
-            response,
-            _args9 = arguments;
-        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
-          while (1) {
-            switch (_context9.prev = _context9.next) {
-              case 0:
-                symbol = _args9.length > 0 && _args9[0] !== undefined ? _args9[0] : undefined;
-                since = _args9.length > 1 && _args9[1] !== undefined ? _args9[1] : undefined;
-                limit = _args9.length > 2 && _args9[2] !== undefined ? _args9[2] : undefined;
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
-                _context9.next = 6;
-                return this.loadMarkets();
-
-              case 6:
-                request = {
-                  'status': 'all'
-                };
-                market = undefined;
-
-                if (symbol) {
-                  market = this.market(symbol);
-                  request['product_id'] = market['id'];
-                }
-
-                _context9.next = 11;
-                return this.privateGetOrders(this.extend(request, params));
-
-              case 11:
-                response = _context9.sent;
-                return _context9.abrupt("return", this.parseOrders(response, market, since, limit));
-
-              case 13:
-              case "end":
-                return _context9.stop();
-            }
-          }
-        }, _callee9, this);
-      }));
-
-      return function fetchOrders() {
-        return _fetchOrders.apply(this, arguments);
-      };
-    }()
-  }, {
-    key: "fetchOpenOrders",
-    value: function () {
-      var _fetchOpenOrders = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee10() {
         var symbol,
@@ -708,7 +758,9 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 6:
-                request = {};
+                request = {
+                  'status': 'all'
+                };
                 market = undefined;
 
                 if (symbol) {
@@ -731,14 +783,14 @@ function (_Exchange) {
         }, _callee10, this);
       }));
 
-      return function fetchOpenOrders() {
-        return _fetchOpenOrders.apply(this, arguments);
+      return function fetchOrders() {
+        return _fetchOrders.apply(this, arguments);
       };
     }()
   }, {
-    key: "fetchClosedOrders",
+    key: "fetchOpenOrders",
     value: function () {
-      var _fetchClosedOrders = _asyncToGenerator(
+      var _fetchOpenOrders = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee11() {
         var symbol,
@@ -761,9 +813,7 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 6:
-                request = {
-                  'status': 'done'
-                };
+                request = {};
                 market = undefined;
 
                 if (symbol) {
@@ -786,6 +836,61 @@ function (_Exchange) {
         }, _callee11, this);
       }));
 
+      return function fetchOpenOrders() {
+        return _fetchOpenOrders.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "fetchClosedOrders",
+    value: function () {
+      var _fetchClosedOrders = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee12() {
+        var symbol,
+            since,
+            limit,
+            params,
+            request,
+            market,
+            response,
+            _args12 = arguments;
+        return _regeneratorRuntime.wrap(function _callee12$(_context12) {
+          while (1) {
+            switch (_context12.prev = _context12.next) {
+              case 0:
+                symbol = _args12.length > 0 && _args12[0] !== undefined ? _args12[0] : undefined;
+                since = _args12.length > 1 && _args12[1] !== undefined ? _args12[1] : undefined;
+                limit = _args12.length > 2 && _args12[2] !== undefined ? _args12[2] : undefined;
+                params = _args12.length > 3 && _args12[3] !== undefined ? _args12[3] : {};
+                _context12.next = 6;
+                return this.loadMarkets();
+
+              case 6:
+                request = {
+                  'status': 'done'
+                };
+                market = undefined;
+
+                if (symbol) {
+                  market = this.market(symbol);
+                  request['product_id'] = market['id'];
+                }
+
+                _context12.next = 11;
+                return this.privateGetOrders(this.extend(request, params));
+
+              case 11:
+                response = _context12.sent;
+                return _context12.abrupt("return", this.parseOrders(response, market, since, limit));
+
+              case 13:
+              case "end":
+                return _context12.stop();
+            }
+          }
+        }, _callee12, this);
+      }));
+
       return function fetchClosedOrders() {
         return _fetchClosedOrders.apply(this, arguments);
       };
@@ -795,19 +900,19 @@ function (_Exchange) {
     value: function () {
       var _createOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee12(market, type, side, amount) {
+      _regeneratorRuntime.mark(function _callee13(market, type, side, amount) {
         var price,
             params,
             order,
             response,
-            _args12 = arguments;
-        return _regeneratorRuntime.wrap(function _callee12$(_context12) {
+            _args13 = arguments;
+        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
           while (1) {
-            switch (_context12.prev = _context12.next) {
+            switch (_context13.prev = _context13.next) {
               case 0:
-                price = _args12.length > 4 && _args12[4] !== undefined ? _args12[4] : undefined;
-                params = _args12.length > 5 && _args12[5] !== undefined ? _args12[5] : {};
-                _context12.next = 4;
+                price = _args13.length > 4 && _args13[4] !== undefined ? _args13[4] : undefined;
+                params = _args13.length > 5 && _args13[5] !== undefined ? _args13[5] : {};
+                _context13.next = 4;
                 return this.loadMarkets();
 
               case 4:
@@ -818,23 +923,23 @@ function (_Exchange) {
                   'size': amount,
                   'type': type
                 };
-                if (type == 'limit') order['price'] = price;
-                _context12.next = 8;
+                if (type === 'limit') order['price'] = price;
+                _context13.next = 8;
                 return this.privatePostOrders(this.extend(order, params));
 
               case 8:
-                response = _context12.sent;
-                return _context12.abrupt("return", {
+                response = _context13.sent;
+                return _context13.abrupt("return", {
                   'info': response,
                   'id': response['id']
                 });
 
               case 10:
               case "end":
-                return _context12.stop();
+                return _context13.stop();
             }
           }
-        }, _callee12, this);
+        }, _callee13, this);
       }));
 
       return function createOrder(_x6, _x7, _x8, _x9) {
@@ -846,34 +951,34 @@ function (_Exchange) {
     value: function () {
       var _cancelOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee13(id) {
+      _regeneratorRuntime.mark(function _callee14(id) {
         var symbol,
             params,
-            _args13 = arguments;
-        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
+            _args14 = arguments;
+        return _regeneratorRuntime.wrap(function _callee14$(_context14) {
           while (1) {
-            switch (_context13.prev = _context13.next) {
+            switch (_context14.prev = _context14.next) {
               case 0:
-                symbol = _args13.length > 1 && _args13[1] !== undefined ? _args13[1] : undefined;
-                params = _args13.length > 2 && _args13[2] !== undefined ? _args13[2] : {};
-                _context13.next = 4;
+                symbol = _args14.length > 1 && _args14[1] !== undefined ? _args14[1] : undefined;
+                params = _args14.length > 2 && _args14[2] !== undefined ? _args14[2] : {};
+                _context14.next = 4;
                 return this.loadMarkets();
 
               case 4:
-                _context13.next = 6;
+                _context14.next = 6;
                 return this.privateDeleteOrdersId({
                   'id': id
                 });
 
               case 6:
-                return _context13.abrupt("return", _context13.sent);
+                return _context14.abrupt("return", _context14.sent);
 
               case 7:
               case "end":
-                return _context13.stop();
+                return _context14.stop();
             }
           }
-        }, _callee13, this);
+        }, _callee14, this);
       }));
 
       return function cancelOrder(_x10) {
@@ -885,25 +990,25 @@ function (_Exchange) {
     value: function () {
       var _getPaymentMethods = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee14() {
+      _regeneratorRuntime.mark(function _callee15() {
         var response;
-        return _regeneratorRuntime.wrap(function _callee14$(_context14) {
+        return _regeneratorRuntime.wrap(function _callee15$(_context15) {
           while (1) {
-            switch (_context14.prev = _context14.next) {
+            switch (_context15.prev = _context15.next) {
               case 0:
-                _context14.next = 2;
+                _context15.next = 2;
                 return this.privateGetPaymentMethods();
 
               case 2:
-                response = _context14.sent;
-                return _context14.abrupt("return", response);
+                response = _context15.sent;
+                return _context15.abrupt("return", response);
 
               case 4:
               case "end":
-                return _context14.stop();
+                return _context15.stop();
             }
           }
-        }, _callee14, this);
+        }, _callee15, this);
       }));
 
       return function getPaymentMethods() {
@@ -914,88 +1019,6 @@ function (_Exchange) {
     key: "deposit",
     value: function () {
       var _deposit = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee15(currency, amount, address) {
-        var params,
-            request,
-            method,
-            response,
-            _args15 = arguments;
-        return _regeneratorRuntime.wrap(function _callee15$(_context15) {
-          while (1) {
-            switch (_context15.prev = _context15.next) {
-              case 0:
-                params = _args15.length > 3 && _args15[3] !== undefined ? _args15[3] : {};
-                _context15.next = 3;
-                return this.loadMarkets();
-
-              case 3:
-                request = {
-                  'currency': currency,
-                  'amount': amount
-                };
-                method = 'privatePostDeposits';
-
-                if (!('payment_method_id' in params)) {
-                  _context15.next = 9;
-                  break;
-                }
-
-                // deposit from a payment_method, like a bank account
-                method += 'PaymentMethod';
-                _context15.next = 14;
-                break;
-
-              case 9:
-                if (!('coinbase_account_id' in params)) {
-                  _context15.next = 13;
-                  break;
-                }
-
-                // deposit into GDAX account from a Coinbase account
-                method += 'CoinbaseAccount';
-                _context15.next = 14;
-                break;
-
-              case 13:
-                throw new NotSupported(this.id + ' deposit() requires one of `coinbase_account_id` or `payment_method_id` extra params');
-
-              case 14:
-                _context15.next = 16;
-                return this[method](this.extend(request, params));
-
-              case 16:
-                response = _context15.sent;
-
-                if (response) {
-                  _context15.next = 19;
-                  break;
-                }
-
-                throw new ExchangeError(this.id + ' deposit() error: ' + this.json(response));
-
-              case 19:
-                return _context15.abrupt("return", {
-                  'info': response,
-                  'id': response['id']
-                });
-
-              case 20:
-              case "end":
-                return _context15.stop();
-            }
-          }
-        }, _callee15, this);
-      }));
-
-      return function deposit(_x11, _x12, _x13) {
-        return _deposit.apply(this, arguments);
-      };
-    }()
-  }, {
-    key: "withdraw",
-    value: function () {
-      var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee16(currency, amount, address) {
         var params,
@@ -1016,6 +1039,90 @@ function (_Exchange) {
                   'currency': currency,
                   'amount': amount
                 };
+                method = 'privatePostDeposits';
+
+                if (!('payment_method_id' in params)) {
+                  _context16.next = 9;
+                  break;
+                }
+
+                // deposit from a payment_method, like a bank account
+                method += 'PaymentMethod';
+                _context16.next = 14;
+                break;
+
+              case 9:
+                if (!('coinbase_account_id' in params)) {
+                  _context16.next = 13;
+                  break;
+                }
+
+                // deposit into GDAX account from a Coinbase account
+                method += 'CoinbaseAccount';
+                _context16.next = 14;
+                break;
+
+              case 13:
+                throw new NotSupported(this.id + ' deposit() requires one of `coinbase_account_id` or `payment_method_id` extra params');
+
+              case 14:
+                _context16.next = 16;
+                return this[method](this.extend(request, params));
+
+              case 16:
+                response = _context16.sent;
+
+                if (response) {
+                  _context16.next = 19;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' deposit() error: ' + this.json(response));
+
+              case 19:
+                return _context16.abrupt("return", {
+                  'info': response,
+                  'id': response['id']
+                });
+
+              case 20:
+              case "end":
+                return _context16.stop();
+            }
+          }
+        }, _callee16, this);
+      }));
+
+      return function deposit(_x11, _x12, _x13) {
+        return _deposit.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "withdraw",
+    value: function () {
+      var _withdraw = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee17(currency, amount, address) {
+        var tag,
+            params,
+            request,
+            method,
+            response,
+            _args17 = arguments;
+        return _regeneratorRuntime.wrap(function _callee17$(_context17) {
+          while (1) {
+            switch (_context17.prev = _context17.next) {
+              case 0:
+                tag = _args17.length > 3 && _args17[3] !== undefined ? _args17[3] : undefined;
+                params = _args17.length > 4 && _args17[4] !== undefined ? _args17[4] : {};
+                _context17.next = 4;
+                return this.loadMarkets();
+
+              case 4:
+                request = {
+                  'currency': currency,
+                  'amount': amount
+                };
                 method = 'privatePostWithdrawals';
 
                 if ('payment_method_id' in params) {
@@ -1027,31 +1134,31 @@ function (_Exchange) {
                   request['crypto_address'] = address;
                 }
 
-                _context16.next = 8;
+                _context17.next = 9;
                 return this[method](this.extend(request, params));
 
-              case 8:
-                response = _context16.sent;
+              case 9:
+                response = _context17.sent;
 
                 if (response) {
-                  _context16.next = 11;
+                  _context17.next = 12;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' withdraw() error: ' + this.json(response));
 
-              case 11:
-                return _context16.abrupt("return", {
+              case 12:
+                return _context17.abrupt("return", {
                   'info': response,
                   'id': response['id']
                 });
 
-              case 12:
+              case 13:
               case "end":
-                return _context16.stop();
+                return _context17.stop();
             }
           }
-        }, _callee16, this);
+        }, _callee17, this);
       }));
 
       return function withdraw(_x14, _x15, _x16) {
@@ -1069,18 +1176,18 @@ function (_Exchange) {
       var request = '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (method == 'GET') {
+      if (method === 'GET') {
         if (_Object$keys(query).length) request += '?' + this.urlencode(query);
       }
 
       var url = this.urls['api'] + request;
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
         var payload = '';
 
-        if (method != 'GET') {
+        if (method !== 'GET') {
           if (_Object$keys(query).length) {
             body = this.json(query);
             payload = body;
@@ -1110,20 +1217,23 @@ function (_Exchange) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code == 400) {
-        if (body[0] == "{") {
+      if (code === 400) {
+        if (body[0] === '{') {
           var response = JSON.parse(body);
           var message = response['message'];
+          var error = this.id + ' ' + message;
 
           if (message.indexOf('price too small') >= 0) {
-            throw new InvalidOrder(this.id + ' ' + message);
+            throw new InvalidOrder(error);
           } else if (message.indexOf('price too precise') >= 0) {
-            throw new InvalidOrder(this.id + ' ' + message);
-          } else if (message == 'Invalid API Key') {
-            throw new AuthenticationError(this.id + ' ' + message);
+            throw new InvalidOrder(error);
+          } else if (message === 'Insufficient funds') {
+            throw new InsufficientFunds(error);
+          } else if (message === 'Invalid API Key') {
+            throw new AuthenticationError(error);
           }
 
-          throw new ExchangeError(this.id + ' ' + this.json(response));
+          throw new ExchangeError(this.id + ' ' + message);
         }
 
         throw new ExchangeError(this.id + ' ' + body);
@@ -1134,45 +1244,45 @@ function (_Exchange) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee17(path) {
+      _regeneratorRuntime.mark(function _callee18(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args17 = arguments;
-        return _regeneratorRuntime.wrap(function _callee17$(_context17) {
+            _args18 = arguments;
+        return _regeneratorRuntime.wrap(function _callee18$(_context18) {
           while (1) {
-            switch (_context17.prev = _context17.next) {
+            switch (_context18.prev = _context18.next) {
               case 0:
-                api = _args17.length > 1 && _args17[1] !== undefined ? _args17[1] : 'public';
-                method = _args17.length > 2 && _args17[2] !== undefined ? _args17[2] : 'GET';
-                params = _args17.length > 3 && _args17[3] !== undefined ? _args17[3] : {};
-                headers = _args17.length > 4 && _args17[4] !== undefined ? _args17[4] : undefined;
-                body = _args17.length > 5 && _args17[5] !== undefined ? _args17[5] : undefined;
-                _context17.next = 7;
+                api = _args18.length > 1 && _args18[1] !== undefined ? _args18[1] : 'public';
+                method = _args18.length > 2 && _args18[2] !== undefined ? _args18[2] : 'GET';
+                params = _args18.length > 3 && _args18[3] !== undefined ? _args18[3] : {};
+                headers = _args18.length > 4 && _args18[4] !== undefined ? _args18[4] : undefined;
+                body = _args18.length > 5 && _args18[5] !== undefined ? _args18[5] : undefined;
+                _context18.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context17.sent;
+                response = _context18.sent;
 
                 if (!('message' in response)) {
-                  _context17.next = 10;
+                  _context18.next = 10;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + this.json(response));
 
               case 10:
-                return _context17.abrupt("return", response);
+                return _context18.abrupt("return", response);
 
               case 11:
               case "end":
-                return _context17.stop();
+                return _context18.stop();
             }
           }
-        }, _callee17, this);
+        }, _callee18, this);
       }));
 
       return function request(_x17) {

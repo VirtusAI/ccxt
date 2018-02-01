@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -44,7 +44,10 @@ function (_Exchange) {
         'countries': 'UA',
         // Ukraine,
         'rateLimit': 3000,
-        'hasCORS': true,
+        'has': {
+          'CORS': true,
+          'createMarketOrder': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27941483-79fc7350-62d9-11e7-9f61-ac47f28fcd96.jpg',
           'api': 'https://btc-trade.com.ua/api',
@@ -60,6 +63,12 @@ function (_Exchange) {
           }
         },
         'markets': {
+          'BCH/UAH': {
+            'id': 'bch_uah',
+            'symbol': 'BCH/UAH',
+            'base': 'BCH',
+            'quote': 'UAH'
+          },
           'BTC/UAH': {
             'id': 'btc_uah',
             'symbol': 'BTC/UAH',
@@ -74,64 +83,16 @@ function (_Exchange) {
               }
             }
           },
-          'ETH/UAH': {
-            'id': 'eth_uah',
-            'symbol': 'ETH/UAH',
-            'base': 'ETH',
-            'quote': 'UAH'
-          },
-          'LTC/UAH': {
-            'id': 'ltc_uah',
-            'symbol': 'LTC/UAH',
-            'base': 'LTC',
-            'quote': 'UAH'
-          },
-          'DOGE/UAH': {
-            'id': 'doge_uah',
-            'symbol': 'DOGE/UAH',
-            'base': 'DOGE',
-            'quote': 'UAH'
+          'DASH/BTC': {
+            'id': 'dash_btc',
+            'symbol': 'DASH/BTC',
+            'base': 'DASH',
+            'quote': 'BTC'
           },
           'DASH/UAH': {
             'id': 'dash_uah',
             'symbol': 'DASH/UAH',
             'base': 'DASH',
-            'quote': 'UAH'
-          },
-          'SIB/UAH': {
-            'id': 'sib_uah',
-            'symbol': 'SIB/UAH',
-            'base': 'SIB',
-            'quote': 'UAH'
-          },
-          'KRB/UAH': {
-            'id': 'krb_uah',
-            'symbol': 'KRB/UAH',
-            'base': 'KRB',
-            'quote': 'UAH'
-          },
-          'NVC/UAH': {
-            'id': 'nvc_uah',
-            'symbol': 'NVC/UAH',
-            'base': 'NVC',
-            'quote': 'UAH'
-          },
-          'LTC/BTC': {
-            'id': 'ltc_btc',
-            'symbol': 'LTC/BTC',
-            'base': 'LTC',
-            'quote': 'BTC'
-          },
-          'NVC/BTC': {
-            'id': 'nvc_btc',
-            'symbol': 'NVC/BTC',
-            'base': 'NVC',
-            'quote': 'BTC'
-          },
-          'ITI/UAH': {
-            'id': 'iti_uah',
-            'symbol': 'ITI/UAH',
-            'base': 'ITI',
             'quote': 'UAH'
           },
           'DOGE/BTC': {
@@ -140,17 +101,91 @@ function (_Exchange) {
             'base': 'DOGE',
             'quote': 'BTC'
           },
-          'DASH/BTC': {
-            'id': 'dash_btc',
-            'symbol': 'DASH/BTC',
-            'base': 'DASH',
+          'DOGE/UAH': {
+            'id': 'doge_uah',
+            'symbol': 'DOGE/UAH',
+            'base': 'DOGE',
+            'quote': 'UAH'
+          },
+          'ETH/UAH': {
+            'id': 'eth_uah',
+            'symbol': 'ETH/UAH',
+            'base': 'ETH',
+            'quote': 'UAH'
+          },
+          'ITI/UAH': {
+            'id': 'iti_uah',
+            'symbol': 'ITI/UAH',
+            'base': 'ITI',
+            'quote': 'UAH'
+          },
+          'KRB/UAH': {
+            'id': 'krb_uah',
+            'symbol': 'KRB/UAH',
+            'base': 'KRB',
+            'quote': 'UAH'
+          },
+          'LTC/BTC': {
+            'id': 'ltc_btc',
+            'symbol': 'LTC/BTC',
+            'base': 'LTC',
             'quote': 'BTC'
+          },
+          'LTC/UAH': {
+            'id': 'ltc_uah',
+            'symbol': 'LTC/UAH',
+            'base': 'LTC',
+            'quote': 'UAH'
+          },
+          'NVC/BTC': {
+            'id': 'nvc_btc',
+            'symbol': 'NVC/BTC',
+            'base': 'NVC',
+            'quote': 'BTC'
+          },
+          'NVC/UAH': {
+            'id': 'nvc_uah',
+            'symbol': 'NVC/UAH',
+            'base': 'NVC',
+            'quote': 'UAH'
+          },
+          'PPC/BTC': {
+            'id': 'ppc_btc',
+            'symbol': 'PPC/BTC',
+            'base': 'PPC',
+            'quote': 'BTC'
+          },
+          'SIB/UAH': {
+            'id': 'sib_uah',
+            'symbol': 'SIB/UAH',
+            'base': 'SIB',
+            'quote': 'UAH'
+          },
+          'XMR/UAH': {
+            'id': 'xmr_uah',
+            'symbol': 'XMR/UAH',
+            'base': 'XMR',
+            'quote': 'UAH'
+          },
+          'ZEC/UAH': {
+            'id': 'zec_uah',
+            'symbol': 'ZEC/UAH',
+            'base': 'ZEC',
+            'quote': 'UAH'
           }
         },
         'fees': {
           'trading': {
             'maker': 0.1 / 100,
             'taker': 0.1 / 100
+          },
+          'funding': {
+            'withdraw': {
+              'BTC': 0.0006,
+              'LTC': 0.01,
+              'NVC': 0.01,
+              'DOGE': 10
+            }
           }
         }
       });
@@ -351,10 +386,10 @@ function (_Exchange) {
 
                   for (t = start; t < ticker.length; t++) {
                     candle = ticker[t];
-                    if (typeof result['open'] == 'undefined') result['open'] = candle[1];
-                    if (typeof result['high'] == 'undefined' || result['high'] < candle[2]) result['high'] = candle[2];
-                    if (typeof result['low'] == 'undefined' || result['low'] > candle[3]) result['low'] = candle[3];
-                    if (typeof result['baseVolume'] == 'undefined') result['baseVolume'] = -candle[5];else result['baseVolume'] -= candle[5];
+                    if (typeof result['open'] === 'undefined') result['open'] = candle[1];
+                    if (typeof result['high'] === 'undefined' || result['high'] < candle[2]) result['high'] = candle[2];
+                    if (typeof result['low'] === 'undefined' || result['low'] > candle[3]) result['low'] = candle[3];
+                    if (typeof result['baseVolume'] === 'undefined') result['baseVolume'] = -candle[5];else result['baseVolume'] -= candle[5];
                   }
 
                   last = tickerLength - 1;
@@ -379,17 +414,22 @@ function (_Exchange) {
   }, {
     key: "convertCyrillicMonthNameToString",
     value: function convertCyrillicMonthNameToString(cyrillic) {
-      var months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+      var months = {
+        'января': '01',
+        'февраля': '02',
+        'марта': '03',
+        'апреля': '04',
+        'мая': '05',
+        'июня': '06',
+        'июля': '07',
+        'августа': '08',
+        'сентября': '09',
+        'октября': '10',
+        'ноября': '11',
+        'декабря': '12'
+      };
       var month = undefined;
-
-      for (var i = 0; i < months.length; i++) {
-        if (cyrillic == months[i]) {
-          month = i + 1;
-          month = month.toString();
-          if (i < 9) month = '0' + month;
-        }
-      }
-
+      if (cyrillic in months) month = months[cyrillic];
       return month;
     }
   }, {
@@ -403,16 +443,25 @@ function (_Exchange) {
       var hms = parts[4];
       var hmsLength = hms.length;
 
-      if (hmsLength == 7) {
+      if (hmsLength === 7) {
         hms = '0' + hms;
+      }
+
+      if (day.length === 1) {
+        day = '0' + day;
       }
 
       var ymd = [year, month, day].join('-');
       var ymdhms = ymd + 'T' + hms;
-      var timestamp = this.parse8601(ymdhms);
-      timestamp = timestamp - 10800000; // server reports local GMT+3 time, adjust to UTC
+      var timestamp = this.parse8601(ymdhms); // server reports local time, adjust to UTC
 
-      return timestamp;
+      var md = [month, day].join('');
+      md = parseInt(md); // a special case for DST
+      // subtract 2 hours during winter
+
+      if (md < 325 || md > 1028) return timestamp - 7200000; // subtract 3 hours during summer
+
+      return timestamp - 10800000;
     }
   }, {
     key: "parseTrade",
@@ -424,8 +473,8 @@ function (_Exchange) {
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'symbol': market['symbol'],
-        'type': undefined,
-        'side': undefined,
+        'type': 'limit',
+        'side': trade['type'],
         'price': parseFloat(trade['price']),
         'amount': parseFloat(trade['amnt_trade'])
       };
@@ -459,6 +508,8 @@ function (_Exchange) {
 
               case 6:
                 response = _context4.sent;
+                // they report each trade twice (once for both of the two sides of the fill)
+                // deduplicate trades for that reason
                 trades = [];
 
                 for (i = 0; i < response.length; i++) {
@@ -500,7 +551,7 @@ function (_Exchange) {
                 price = _args5.length > 4 && _args5[4] !== undefined ? _args5[4] : undefined;
                 params = _args5.length > 5 && _args5[5] !== undefined ? _args5[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context5.next = 4;
                   break;
                 }
@@ -656,7 +707,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += this.implodeParams(path, query);
       } else {
         this.checkRequiredCredentials();

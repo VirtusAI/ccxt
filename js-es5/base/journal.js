@@ -78,7 +78,7 @@ module.exports = function (logFileName, object, methodNames) {
                   response: response,
                   exception: exception
                 };
-                fileName = typeof logFileName == 'string' ? logFileName : logFileName();
+                fileName = typeof logFileName === 'string' ? logFileName : logFileName();
                 line = _JSON$stringify(log) + '\n';
                 fs.appendFileSync(fileName, line);
 

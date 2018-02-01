@@ -31,15 +31,13 @@ var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
 var _Object$assign = require("@babel/runtime/core-js/object/assign");
 
-var Exchange = require('./js-es5/base/Exchange');
-
-var functions = require('./js-es5/base/functions');
-
-var errors = require('./js-es5/base/errors'); //-----------------------------------------------------------------------------
+var Exchange = require('./js-es5/base/Exchange'),
+    functions = require('./js-es5/base/functions'),
+    errors = require('./js-es5/base/errors'); //-----------------------------------------------------------------------------
 // this is updated by vss.js when building
 
 
-var version = '1.10.456';
+var version = '1.10.954';
 Exchange.ccxtVersion = version; //-----------------------------------------------------------------------------
 
 var exchanges = {
@@ -48,6 +46,7 @@ var exchanges = {
   'acx': require('./js-es5/acx.js'),
   'allcoin': require('./js-es5/allcoin.js'),
   'anxpro': require('./js-es5/anxpro.js'),
+  'bibox': require('./js-es5/bibox.js'),
   'binance': require('./js-es5/binance.js'),
   'bit2c': require('./js-es5/bit2c.js'),
   'bitbay': require('./js-es5/bitbay.js'),
@@ -65,6 +64,7 @@ var exchanges = {
   'bittrex': require('./js-es5/bittrex.js'),
   'bl3p': require('./js-es5/bl3p.js'),
   'bleutrade': require('./js-es5/bleutrade.js'),
+  'braziliex': require('./js-es5/braziliex.js'),
   'btcbox': require('./js-es5/btcbox.js'),
   'btcchina': require('./js-es5/btcchina.js'),
   'btcexchange': require('./js-es5/btcexchange.js'),
@@ -79,6 +79,7 @@ var exchanges = {
   'chbtc': require('./js-es5/chbtc.js'),
   'chilebit': require('./js-es5/chilebit.js'),
   'coincheck': require('./js-es5/coincheck.js'),
+  'coinexchange': require('./js-es5/coinexchange.js'),
   'coinfloor': require('./js-es5/coinfloor.js'),
   'coingi': require('./js-es5/coingi.js'),
   'coinmarketcap': require('./js-es5/coinmarketcap.js'),
@@ -112,6 +113,7 @@ var exchanges = {
   'liqui': require('./js-es5/liqui.js'),
   'livecoin': require('./js-es5/livecoin.js'),
   'luno': require('./js-es5/luno.js'),
+  'lykke': require('./js-es5/lykke.js'),
   'mercado': require('./js-es5/mercado.js'),
   'mixcoins': require('./js-es5/mixcoins.js'),
   'nova': require('./js-es5/nova.js'),
@@ -122,7 +124,7 @@ var exchanges = {
   'poloniex': require('./js-es5/poloniex.js'),
   'qryptos': require('./js-es5/qryptos.js'),
   'quadrigacx': require('./js-es5/quadrigacx.js'),
-  'quoine': require('./js-es5/quoine.js'),
+  'quoinex': require('./js-es5/quoinex.js'),
   'southxchange': require('./js-es5/southxchange.js'),
   'surbitcoin': require('./js-es5/surbitcoin.js'),
   'therock': require('./js-es5/therock.js'),

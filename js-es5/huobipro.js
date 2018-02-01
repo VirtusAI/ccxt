@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -48,13 +48,8 @@ function (_Exchange) {
         'accounts': undefined,
         'accountsById': undefined,
         'hostname': 'api.huobi.pro',
-        'hasCORS': false,
-        // obsolete metainfo structure
-        'hasFetchOHLCV': true,
-        'hasFetchOrders': true,
-        'hasFetchOpenOrders': true,
-        // new metainfo structure
         'has': {
+          'CORS': false,
           'fetchOHCLV': true,
           'fetchOrders': true,
           'fetchOpenOrders': true
@@ -74,7 +69,8 @@ function (_Exchange) {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766569-15aa7b9a-5edd-11e7-9e7f-44791f4ee49c.jpg',
           'api': 'https://api.huobi.pro',
           'www': 'https://www.huobi.pro',
-          'doc': 'https://github.com/huobiapi/API_Docs/wiki/REST_api_reference'
+          'doc': 'https://github.com/huobiapi/API_Docs/wiki/REST_api_reference',
+          'fees': 'https://www.huobi.pro/about/fee/'
         },
         'api': {
           'market': {
@@ -104,9 +100,18 @@ function (_Exchange) {
             'order/orders/{id}/submitcancel', // 申请撤销一个订单请求
             'order/orders/batchcancel', // 批量撤销订单
             'dw/balance/transfer', // 资产划转
+            'dw/withdraw/api/create', // 申请提现虚拟币
             'dw/withdraw-virtual/create', // 申请提现虚拟币
             'dw/withdraw-virtual/{id}/place', // 确认申请虚拟币提现
             'dw/withdraw-virtual/{id}/cancel']
+          }
+        },
+        'fees': {
+          'trading': {
+            'tierBased': false,
+            'percentage': true,
+            'maker': 0.002,
+            'taker': 0.002
           }
         }
       });
@@ -155,8 +160,8 @@ function (_Exchange) {
                     'price': market['price-precision']
                   };
                   lot = Math.pow(10, -precision['amount']);
-                  maker = base == 'OMG' ? 0 : 0.2 / 100;
-                  taker = base == 'OMG' ? 0 : 0.2 / 100;
+                  maker = base === 'OMG' ? 0 : 0.2 / 100;
+                  taker = base === 'OMG' ? 0 : 0.2 / 100;
                   result.push({
                     'id': id,
                     'symbol': symbol,
@@ -427,7 +432,7 @@ function (_Exchange) {
       var timeframe = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '1m';
       var since = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
       var limit = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-      return [ohlcv['id'] * 1000, ohlcv['open'], ohlcv['high'], ohlcv['low'], ohlcv['close'], ohlcv['vol']];
+      return [ohlcv['id'] * 1000, ohlcv['open'], ohlcv['high'], ohlcv['low'], ohlcv['close'], ohlcv['amount']];
     }
   }, {
     key: "fetchOHLCV",
@@ -618,8 +623,8 @@ function (_Exchange) {
                   currency = this.commonCurrencyCode(uppercase);
                   account = undefined;
                   if (currency in result) account = result[currency];else account = this.account();
-                  if (balance['type'] == 'trade') account['free'] = parseFloat(balance['balance']);
-                  if (balance['type'] == 'frozen') account['used'] = parseFloat(balance['balance']);
+                  if (balance['type'] === 'trade') account['free'] = parseFloat(balance['balance']);
+                  if (balance['type'] === 'frozen') account['used'] = parseFloat(balance['balance']);
                   account['total'] = this.sum(account['free'], account['used']);
                   result[currency] = account;
                 }
@@ -669,7 +674,7 @@ function (_Exchange) {
                 throw new ExchangeError(this.id + ' fetchOrders() requires a symbol parameter');
 
               case 6:
-                this.load_markets();
+                this.loadMarkets();
                 market = this.market(symbol);
                 status = undefined;
 
@@ -693,10 +698,10 @@ function (_Exchange) {
                 break;
 
               case 17:
-                throw new ExchangeError(this.id + ' fetchOrders() requires type param or status param for spot market ' + symbol + '(0 or "open" for unfilled or partial filled orders, 1 or "closed" for filled orders)');
+                throw new ExchangeError(this.id + ' fetchOrders() requires a type param or status param for spot market ' + symbol + ' (0 or "open" for unfilled or partial filled orders, 1 or "closed" for filled orders)');
 
               case 18:
-                if (!(status == 0 || status == 'open')) {
+                if (!(status === 0 || status === 'open')) {
                   _context9.next = 22;
                   break;
                 }
@@ -706,7 +711,7 @@ function (_Exchange) {
                 break;
 
               case 22:
-                if (!(status == 1 || status == 'closed')) {
+                if (!(status === 1 || status === 'closed')) {
                   _context9.next = 26;
                   break;
                 }
@@ -716,7 +721,7 @@ function (_Exchange) {
                 break;
 
               case 26:
-                throw new ExchangeError(this.id + ' fetchOrders() wrong type param or status param for spot market ' + symbol + '(0 or "open" for unfilled or partial filled orders, 1 or "closed" for filled orders)');
+                throw new ExchangeError(this.id + ' fetchOrders() wrong type param or status param for spot market ' + symbol + ' (0 or "open" for unfilled or partial filled orders, 1 or "closed" for filled orders)');
 
               case 27:
                 _context9.next = 29;
@@ -782,13 +787,13 @@ function (_Exchange) {
   }, {
     key: "parseOrderStatus",
     value: function parseOrderStatus(status) {
-      if (status == 'partial-filled') {
+      if (status === 'partial-filled') {
         return 'open';
-      } else if (status == 'filled') {
+      } else if (status === 'filled') {
         return 'closed';
-      } else if (status == 'canceled') {
+      } else if (status === 'canceled') {
         return 'canceled';
-      } else if (status == 'submitted') {
+      } else if (status === 'submitted') {
         return 'open';
       }
 
@@ -881,7 +886,7 @@ function (_Exchange) {
                   'symbol': market['id'],
                   'type': side + '-' + type
                 };
-                if (type == 'limit') order['price'] = this.priceToPrecision(symbol, price);
+                if (type === 'limit') order['price'] = this.priceToPrecision(symbol, price);
                 _context11.next = 11;
                 return this.privatePostOrderOrdersPlace(this.extend(order, params));
 
@@ -948,11 +953,11 @@ function (_Exchange) {
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = '/';
-      if (api == 'market') url += api;else url += this.version;
+      if (api === 'market') url += api;else url += this.version;
       url += '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var timestamp = this.YmdHMS(this.milliseconds(), 'T');
         var request = this.keysort(this.extend({
@@ -961,7 +966,8 @@ function (_Exchange) {
           'AccessKeyId': this.apiKey,
           'Timestamp': timestamp
         }, query));
-        var auth = this.urlencode(request);
+        var auth = this.urlencode(request); // unfortunately, PHP demands double quotes for the escaped newline symbol
+
         var payload = [method, this.hostname, url, auth].join("\n");
         var signature = this.hmac(this.encode(payload), this.encode(this.secret), 'sha256', 'base64');
         auth += '&' + this.urlencode({
@@ -969,10 +975,14 @@ function (_Exchange) {
         });
         url += '?' + auth;
 
-        if (method == 'POST') {
+        if (method === 'POST') {
           body = this.json(query);
           headers = {
             'Content-Type': 'application/json'
+          };
+        } else {
+          headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
           };
         }
       } else {
@@ -1020,7 +1030,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['status'] == 'error')) {
+                if (!(response['status'] === 'error')) {
                   _context13.next = 11;
                   break;
                 }

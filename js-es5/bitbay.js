@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -21,6 +21,10 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
+    InvalidNonce = _require.InvalidNonce,
+    InsufficientFunds = _require.InsufficientFunds,
+    AuthenticationError = _require.AuthenticationError,
+    InvalidOrder = _require.InvalidOrder,
     ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
 
 
@@ -44,8 +48,10 @@ function (_Exchange) {
         'countries': ['PL', 'EU'],
         // Poland
         'rateLimit': 1000,
-        'hasCORS': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766132-978a7bd8-5ece-11e7-9540-bc96d1e9bbb8.jpg',
           'www': 'https://bitbay.net',
@@ -53,7 +59,8 @@ function (_Exchange) {
             'public': 'https://bitbay.net/API/Public',
             'private': 'https://bitbay.net/API/Trading/tradingApi.php'
           },
-          'doc': ['https://bitbay.net/public-api', 'https://bitbay.net/account/tab-api', 'https://github.com/BitBayNet/API']
+          'doc': ['https://bitbay.net/public-api', 'https://bitbay.net/account/tab-api', 'https://github.com/BitBayNet/API'],
+          'fees': 'https://bitbay.net/en/fees'
         },
         'api': {
           'public': {
@@ -317,7 +324,57 @@ function (_Exchange) {
           'trading': {
             'maker': 0.3 / 100,
             'taker': 0.0043
+          },
+          'funding': {
+            'withdraw': {
+              'BTC': 0.0009,
+              'LTC': 0.005,
+              'ETH': 0.00126,
+              'LSK': 0.2,
+              'BCH': 0.0006,
+              'GAME': 0.005,
+              'DASH': 0.001,
+              'BTG': 0.0008,
+              'PLN': 4,
+              'EUR': 1.5
+            }
           }
+        },
+        'exceptions': {
+          '400': ExchangeError,
+          // At least one parameter wasn't set
+          '401': InvalidOrder,
+          // Invalid order type
+          '402': InvalidOrder,
+          // No orders with specified currencies
+          '403': InvalidOrder,
+          // Invalid payment currency name
+          '404': InvalidOrder,
+          // Error. Wrong transaction type
+          '405': InvalidOrder,
+          // Order with this id doesn't exist
+          '406': InsufficientFunds,
+          // No enough money or crypto
+          // code 407 not specified are not specified in their docs
+          '408': InvalidOrder,
+          // Invalid currency name
+          '501': AuthenticationError,
+          // Invalid public key
+          '502': AuthenticationError,
+          // Invalid sign
+          '503': InvalidNonce,
+          // Invalid moment parameter. Request time doesn't match current server time
+          '504': ExchangeError,
+          // Invalid method
+          '505': AuthenticationError,
+          // Key has no permission for this action
+          '506': AuthenticationError,
+          // Account locked. Please contact with customer service
+          // codes 507 and 508 are not specified in their docs
+          '509': ExchangeError,
+          // The BIC/SWIFT is required for this currency
+          '510': ExchangeError // Invalid market name
+
         }
       });
     }
@@ -635,7 +692,8 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee7(code, amount, address) {
-        var params,
+        var tag,
+            params,
             method,
             currency,
             request,
@@ -645,11 +703,12 @@ function (_Exchange) {
           while (1) {
             switch (_context7.prev = _context7.next) {
               case 0:
-                params = _args7.length > 3 && _args7[3] !== undefined ? _args7[3] : {};
-                _context7.next = 3;
+                tag = _args7.length > 3 && _args7[3] !== undefined ? _args7[3] : undefined;
+                params = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : {};
+                _context7.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 method = undefined;
                 currency = this.currency(code);
                 request = {
@@ -666,17 +725,17 @@ function (_Exchange) {
                   request['address'] = address;
                 }
 
-                _context7.next = 9;
+                _context7.next = 10;
                 return this[method](this.extend(request, params));
 
-              case 9:
+              case 10:
                 response = _context7.sent;
                 return _context7.abrupt("return", {
                   'info': response,
                   'id': undefined
                 });
 
-              case 11:
+              case 12:
               case "end":
                 return _context7.stop();
             }
@@ -698,7 +757,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api];
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += '/' + this.implodeParams(path, params) + '.json';
       } else {
         this.checkRequiredCredentials();
@@ -719,6 +778,38 @@ function (_Exchange) {
         'body': body,
         'headers': headers
       };
+    }
+  }, {
+    key: "handleErrors",
+    value: function handleErrors(httpCode, reason, url, method, headers, body) {
+      if (typeof body !== 'string') return; // fallback to default error handler
+
+      if (body.length < 2) return;
+
+      if (body[0] === '{' || body[0] === '[') {
+        var response = JSON.parse(body);
+
+        if ('code' in response) {
+          //
+          // bitbay returns the integer 'success': 1 key from their private API
+          // or an integer 'code' value from 0 to 510 and an error message
+          //
+          //      { 'success': 1, ... }
+          //      { 'code': 502, 'message': 'Invalid sign' }
+          //      { 'code': 0, 'message': 'offer funds not exceeding minimums' }
+          //
+          var code = response['code']; // always an integer
+
+          var feedback = this.id + ' ' + this.json(response);
+          var exceptions = this.exceptions;
+
+          if (code in this.exceptions) {
+            throw new exceptions[code](feedback);
+          } else {
+            throw new ExchangeError(feedback);
+          }
+        }
+      }
     }
   }]);
 

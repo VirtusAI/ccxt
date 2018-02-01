@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -26,7 +26,7 @@ var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
     ExchangeError = _require.ExchangeError,
-    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
+    InvalidOrder = _require.InvalidOrder; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -48,10 +48,12 @@ function (_Exchange) {
         'name': 'CEX.IO',
         'countries': ['GB', 'EU', 'CY', 'RU'],
         'rateLimit': 1500,
-        'hasCORS': true,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
-        'hasFetchOpenOrders': true,
+        'has': {
+          'CORS': true,
+          'fetchTickers': true,
+          'fetchOHLCV': true,
+          'fetchOpenOrders': true
+        },
         'timeframes': {
           '1m': '1m'
         },
@@ -59,7 +61,8 @@ function (_Exchange) {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766442-8ddc33b0-5ed8-11e7-8b98-f786aef0f3c9.jpg',
           'api': 'https://cex.io/api',
           'www': 'https://cex.io',
-          'doc': 'https://cex.io/cex-api'
+          'doc': 'https://cex.io/cex-api',
+          'fees': ['https://cex.io/fee-schedule', 'https://cex.io/limits-commissions']
         },
         'requiredCredentials': {
           'apiKey': true,
@@ -77,8 +80,38 @@ function (_Exchange) {
         },
         'fees': {
           'trading': {
-            'maker': 0,
-            'taker': 0.2 / 100
+            'maker': 0.16 / 100,
+            'taker': 0.25 / 100
+          },
+          'funding': {
+            'withdraw': {
+              // 'USD': undefined,
+              // 'EUR': undefined,
+              // 'RUB': undefined,
+              // 'GBP': undefined,
+              'BTC': 0.001,
+              'ETH': 0.01,
+              'BCH': 0.001,
+              'DASH': 0.01,
+              'BTG': 0.001,
+              'ZEC': 0.001,
+              'XRP': 0.02,
+              'XLM': undefined
+            },
+            'deposit': {
+              // 'USD': amount => amount * 0.035 + 0.25,
+              // 'EUR': amount => amount * 0.035 + 0.24,
+              // 'RUB': amount => amount * 0.05 + 15.57,
+              // 'GBP': amount => amount * 0.035 + 0.2,
+              'BTC': 0.0,
+              'ETH': 0.0,
+              'BCH': 0.0,
+              'DASH': 0.0,
+              'BTG': 0.0,
+              'ZEC': 0.0,
+              'XRP': 0.0,
+              'XLM': 0.0
+            }
           }
         }
       });
@@ -113,6 +146,7 @@ function (_Exchange) {
                     'symbol': symbol,
                     'base': base,
                     'quote': quote,
+                    'lot': market['minLotSize'],
                     'precision': {
                       'price': this.precisionFromString(market['minPrice']),
                       'amount': -1 * _Math$log(market['minLotSize'])
@@ -553,7 +587,7 @@ function (_Exchange) {
                   'amount': amount
                 };
 
-                if (!(type == 'limit')) {
+                if (!(type === 'limit')) {
                   _context8.next = 9;
                   break;
                 }
@@ -563,7 +597,7 @@ function (_Exchange) {
                 break;
 
               case 9:
-                if (!(side == 'buy')) {
+                if (!(side === 'buy')) {
                   _context8.next = 13;
                   break;
                 }
@@ -658,13 +692,13 @@ function (_Exchange) {
 
       var status = order['status'];
 
-      if (status == 'a') {
+      if (status === 'a') {
         status = 'open'; // the unified status
-      } else if (status == 'cd') {
+      } else if (status === 'cd') {
         status = 'canceled';
-      } else if (status == 'c') {
+      } else if (status === 'c') {
         status = 'canceled';
-      } else if (status == 'd') {
+      } else if (status === 'd') {
         status = 'closed';
       }
 
@@ -679,23 +713,30 @@ function (_Exchange) {
       if (market) {
         symbol = market['symbol'];
         cost = this.safeFloat(order, 'ta:' + market['quote']);
+        if (typeof cost === 'undefined') cost = this.safeFloat(order, 'tta:' + market['quote']);
         var baseFee = 'fa:' + market['base'];
+        var baseTakerFee = 'tfa:' + market['base'];
         var quoteFee = 'fa:' + market['quote'];
+        var quoteTakerFee = 'tfa:' + market['quote'];
         var feeRate = this.safeFloat(order, 'tradingFeeMaker');
         if (!feeRate) feeRate = this.safeFloat(order, 'tradingFeeTaker', feeRate);
         if (feeRate) feeRate /= 100.0; // convert to mathematically-correct percentage coefficients: 1.0 = 100%
 
-        if (baseFee in order) {
+        if (baseFee in order || baseTakerFee in order) {
+          var baseFeeCost = this.safeFloat(order, baseFee);
+          if (typeof baseFeeCost === 'undefined') baseFeeCost = this.safeFloat(order, baseTakerFee);
           fee = {
             'currency': market['base'],
             'rate': feeRate,
-            'cost': this.safeFloat(order, baseFee)
+            'cost': baseFeeCost
           };
-        } else if (quoteFee in order) {
+        } else if (quoteFee in order || quoteTakerFee in order) {
+          var quoteFeeCost = this.safeFloat(order, quoteFee);
+          if (typeof quoteFeeCost === 'undefined') quoteFeeCost = this.safeFloat(order, quoteTakerFee);
           fee = {
             'currency': market['quote'],
             'rate': feeRate,
-            'cost': this.safeFloat(order, quoteFee)
+            'cost': quoteFeeCost
           };
         }
       }
@@ -840,7 +881,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -900,7 +941,7 @@ function (_Exchange) {
                 throw new ExchangeError(this.id + ' returned ' + this.json(response));
 
               case 12:
-                if (!(response == true)) {
+                if (!(response === true)) {
                   _context12.next = 16;
                   break;
                 }
@@ -918,7 +959,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['ok'] == 'ok')) {
+                if (!(response['ok'] === 'ok')) {
                   _context12.next = 20;
                   break;
                 }

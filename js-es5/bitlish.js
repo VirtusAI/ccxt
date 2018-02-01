@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -46,10 +46,12 @@ function (_Exchange) {
         'countries': ['GB', 'EU', 'RU'],
         'rateLimit': 1500,
         'version': 'v1',
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true,
+          'fetchOHLCV': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766275-dcfc6c30-5ed3-11e7-839d-00a846385d0b.jpg',
           'api': 'https://bitlish.com/api',
@@ -108,11 +110,11 @@ function (_Exchange) {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
       if (!this.substituteCommonCurrencyCodes) return currency;
-      if (currency == 'XBT') return 'BTC';
-      if (currency == 'BCC') return 'BCH';
-      if (currency == 'DRK') return 'DASH';
-      if (currency == 'DSH') currency = 'DASH';
-      if (currency == 'XDG') currency = 'DOGE';
+      if (currency === 'XBT') return 'BTC';
+      if (currency === 'BCC') return 'BCH';
+      if (currency === 'DRK') return 'DASH';
+      if (currency === 'DSH') currency = 'DASH';
+      if (currency === 'XDG') currency = 'DOGE';
       return currency;
     }
   }, {
@@ -351,6 +353,7 @@ function (_Exchange) {
         var params,
             orderbook,
             timestamp,
+            last,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
@@ -368,10 +371,12 @@ function (_Exchange) {
 
               case 5:
                 orderbook = _context5.sent;
-                timestamp = parseInt(parseInt(orderbook['last']) / 1000);
+                timestamp = undefined;
+                last = this.safeInteger(orderbook, 'last');
+                if (last) timestamp = parseInt(last / 1000);
                 return _context5.abrupt("return", this.parseOrderBook(orderbook, timestamp, 'bid', 'ask', 'price', 'volume'));
 
-              case 8:
+              case 10:
               case "end":
                 return _context5.stop();
             }
@@ -387,7 +392,7 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var side = trade['dir'] == 'bid' ? 'buy' : 'sell';
+      var side = trade['dir'] === 'bid' ? 'buy' : 'sell';
       var symbol = undefined;
       if (market) symbol = market['symbol'];
       var timestamp = parseInt(trade['created'] / 1000);
@@ -493,8 +498,8 @@ function (_Exchange) {
                   account = response[currency];
                   currency = currency.toUpperCase(); // issue #4 bitlish names Dash as DSH, instead of DASH
 
-                  if (currency == 'DSH') currency = 'DASH';
-                  if (currency == 'XDG') currency = 'DOGE';
+                  if (currency === 'DSH') currency = 'DASH';
+                  if (currency === 'XDG') currency = 'DOGE';
                   balance[currency] = account;
                 }
 
@@ -558,10 +563,10 @@ function (_Exchange) {
               case 4:
                 order = {
                   'pair_id': this.marketId(symbol),
-                  'dir': side == 'buy' ? 'bid' : 'ask',
+                  'dir': side === 'buy' ? 'bid' : 'ask',
                   'amount': amount
                 };
-                if (type == 'limit') order['price'] = price;
+                if (type === 'limit') order['price'] = price;
                 _context8.next = 8;
                 return this.privatePostCreateTrade(this.extend(order, params));
 
@@ -629,27 +634,29 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee10(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             response,
             _args10 = arguments;
         return _regeneratorRuntime.wrap(function _callee10$(_context10) {
           while (1) {
             switch (_context10.prev = _context10.next) {
               case 0:
-                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
-                _context10.next = 3;
+                tag = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : undefined;
+                params = _args10.length > 4 && _args10[4] !== undefined ? _args10[4] : {};
+                _context10.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                if (!(currency != 'BTC')) {
-                  _context10.next = 5;
+              case 4:
+                if (!(currency !== 'BTC')) {
+                  _context10.next = 6;
                   break;
                 }
 
                 throw new NotSupported(this.id + ' currently supports BTC withdrawals only, until they document other currencies...');
 
-              case 5:
-                _context10.next = 7;
+              case 6:
+                _context10.next = 8;
                 return this.privatePostWithdraw(this.extend({
                   'currency': currency.toLowerCase(),
                   'amount': parseFloat(amount),
@@ -658,14 +665,14 @@ function (_Exchange) {
 
                 }, params));
 
-              case 7:
+              case 8:
                 response = _context10.sent;
                 return _context10.abrupt("return", {
                   'info': response,
                   'id': response['message_id']
                 });
 
-              case 9:
+              case 10:
               case "end":
                 return _context10.stop();
             }
@@ -687,8 +694,8 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version + '/' + path;
 
-      if (api == 'public') {
-        if (method == 'GET') {
+      if (api === 'public') {
+        if (method === 'GET') {
           if (_Object$keys(params).length) url += '?' + this.urlencode(params);
         } else {
           body = this.json(params);

@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -44,7 +44,10 @@ function (_Exchange) {
         'countries': 'US',
         'rateLimit': 2000,
         'version': 'v1',
-        'hasCORS': true,
+        'has': {
+          'CORS': true,
+          'createMarketOrder': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27822159-66153620-60ad-11e7-89e7-005f6d7f3de0.jpg',
           'api': 'https://api.itbit.com',
@@ -342,7 +345,7 @@ function (_Exchange) {
                 price = _args5.length > 4 && _args5[4] !== undefined ? _args5[4] : undefined;
                 params = _args5.length > 5 && _args5[5] !== undefined ? _args5[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context5.next = 4;
                   break;
                 }
@@ -451,7 +454,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -464,7 +467,7 @@ function (_Exchange) {
         var binhash = this.binaryConcat(url, hash);
         var signature = this.hmac(binhash, this.encode(this.secret), 'sha512', 'base64');
         headers = {
-          'Authorization': self.apiKey + ':' + signature,
+          'Authorization': this.apiKey + ':' + signature,
           'Content-Type': 'application/json',
           'X-Auth-Timestamp': timestamp,
           'X-Auth-Nonce': nonce

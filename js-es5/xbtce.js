@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -47,10 +47,13 @@ function (_Exchange) {
         'rateLimit': 2000,
         // responses are cached every 2 seconds
         'version': 'v1',
-        'hasPublicAPI': false,
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': false,
+        'has': {
+          'publicAPI': false,
+          'CORS': false,
+          'fetchTickers': true,
+          'fetchOHLCV': false,
+          'createMarketOrder': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28059414-e235970c-662c-11e7-8c3a-08e31f78684b.jpg',
           'api': 'https://cryptottlivewebapi.xbtce.net:8443/api',
@@ -98,7 +101,7 @@ function (_Exchange) {
                   id = market['Symbol'];
                   base = market['MarginCurrency'];
                   quote = market['ProfitCurrency'];
-                  if (base == 'DSH') base = 'DASH';
+                  if (base === 'DSH') base = 'DASH';
                   symbol = base + '/' + quote;
                   symbol = market['IsTradeAllowed'] ? symbol : id;
                   result.push({
@@ -162,7 +165,7 @@ function (_Exchange) {
                   currency = balance['Currency'];
                   uppercase = currency.toUpperCase(); // xbtce names DASH incorrectly as DSH
 
-                  if (uppercase == 'DSH') uppercase = 'DASH';
+                  if (uppercase === 'DSH') uppercase = 'DASH';
                   account = {
                     'free': balance['FreeAmount'],
                     'used': balance['LockedAmount'],
@@ -316,8 +319,8 @@ function (_Exchange) {
                   } else {
                     base = id.slice(0, 3);
                     quote = id.slice(3, 6);
-                    if (base == 'DSH') base = 'DASH';
-                    if (quote == 'DSH') quote = 'DASH';
+                    if (base === 'DSH') base = 'DASH';
+                    if (quote === 'DSH') quote = 'DASH';
                     symbol = base + '/' + quote;
                   }
 
@@ -452,10 +455,6 @@ function (_Exchange) {
             since,
             limit,
             params,
-            minutes,
-            periodicity,
-            market,
-            response,
             _args7 = arguments;
         return _regeneratorRuntime.wrap(function _callee7$(_context7) {
           while (1) {
@@ -467,25 +466,7 @@ function (_Exchange) {
                 params = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : {};
                 throw new NotSupported(this.id + ' fetchOHLCV is disabled by the exchange');
 
-              case 9:
-                market = this.market(symbol);
-                if (!since) since = this.seconds() - 86400 * 7; // last day by defulat
-
-                if (!limit) limit = 1000; // default
-
-                _context7.next = 14;
-                return this.privateGetQuotehistorySymbolPeriodicityBarsBid(this.extend({
-                  'symbol': market['id'],
-                  'periodicity': periodicity,
-                  'timestamp': since,
-                  'count': limit
-                }, params));
-
-              case 14:
-                response = _context7.sent;
-                return _context7.abrupt("return", this.parseOHLCVs(response['Bars'], market, timeframe, since, limit));
-
-              case 16:
+              case 5:
               case "end":
                 return _context7.stop();
             }
@@ -517,7 +498,7 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context8.next = 6;
                   break;
                 }
@@ -604,11 +585,11 @@ function (_Exchange) {
       if (!this.apiKey) throw new AuthenticationError(this.id + ' requires apiKey for all requests, their public API is always busy');
       if (!this.uid) throw new AuthenticationError(this.id + ' requires uid property for authentication and trading, their public API is always busy');
       var url = this.urls['api'] + '/' + this.version;
-      if (api == 'public') url += '/' + api;
+      if (api === 'public') url += '/' + api;
       url += '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -617,7 +598,7 @@ function (_Exchange) {
         };
         var nonce = this.nonce().toString();
 
-        if (method == 'POST') {
+        if (method === 'POST') {
           if (_Object$keys(query).length) {
             headers['Content-Type'] = 'application/json';
             body = this.json(query);

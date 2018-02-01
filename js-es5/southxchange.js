@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -18,7 +18,10 @@ var _get = require("@babel/runtime/helpers/get");
 
 var _inherits = require("@babel/runtime/helpers/inherits");
 
-var Exchange = require('./base/Exchange'); //  ---------------------------------------------------------------------------
+var Exchange = require('./base/Exchange');
+
+var _require = require('./base/errors'),
+    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -41,9 +44,11 @@ function (_Exchange) {
         'countries': 'AR',
         // Argentina
         'rateLimit': 1000,
-        'hasFetchTickers': true,
-        'hasCORS': false,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': true,
+          'fetchTickers': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27838912-4f94ec8a-60f6-11e7-9e5d-bbf9bd50a559.jpg',
           'api': 'https://www.southxchange.com/api',
@@ -453,7 +458,7 @@ function (_Exchange) {
                   'type': side,
                   'amount': amount
                 };
-                if (type == 'limit') order['limitPrice'] = price;
+                if (type === 'limit') order['limitPrice'] = price;
                 _context7.next = 9;
                 return this.privatePostPlaceOrder(this.extend(order, params));
 
@@ -521,29 +526,31 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             response,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
             switch (_context9.prev = _context9.next) {
               case 0:
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
-                _context9.next = 3;
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
+                _context9.next = 4;
                 return this.privatePostWithdraw(this.extend({
                   'currency': currency,
                   'address': address,
                   'amount': amount
                 }, params));
 
-              case 3:
+              case 4:
                 response = _context9.sent;
                 return _context9.abrupt("return", {
                   'info': response,
                   'id': undefined
                 });
 
-              case 5:
+              case 6:
               case "end":
                 return _context9.stop();
             }
@@ -566,7 +573,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         query = this.extend({

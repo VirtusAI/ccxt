@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -43,7 +43,9 @@ function (_Exchange) {
         'name': 'VirWoX',
         'countries': ['AT', 'EU'],
         'rateLimit': 1000,
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766894-6da9d360-5eea-11e7-90aa-41f2711b7405.jpg',
           'api': {
@@ -83,7 +85,7 @@ function (_Exchange) {
             switch (_context.prev = _context.next) {
               case 0:
                 _context.next = 2;
-                return this.publicGetInstruments();
+                return this.publicGetGetInstruments();
 
               case 2:
                 markets = _context.sent;
@@ -297,7 +299,7 @@ function (_Exchange) {
                 end = this.milliseconds();
                 start = end - 86400000;
                 _context5.next = 7;
-                return this.publicGetTradedPriceVolume(this.extend({
+                return this.publicGetGetTradedPriceVolume(this.extend({
                   'instrument': symbol,
                   'endDate': this.YmdHMS(end),
                   'startDate': this.YmdHMS(start),
@@ -351,6 +353,26 @@ function (_Exchange) {
       };
     }()
   }, {
+    key: "parseTrade",
+    value: function parseTrade(trade) {
+      var symbol = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+      var sec = this.safeInteger(trade, 'time');
+      var timestamp = sec * 1000;
+      return {
+        'id': trade['tid'],
+        'timestamp': timestamp,
+        'datetime': this.iso8601(timestamp),
+        'order': undefined,
+        'symbol': symbol,
+        'type': undefined,
+        'side': undefined,
+        'price': this.safeFloat(trade, 'price'),
+        'amount': this.safeFloat(trade, 'vol'),
+        'fee': undefined,
+        'info': trade
+      };
+    }
+  }, {
     key: "fetchTrades",
     value: function () {
       var _fetchTrades = _asyncToGenerator(
@@ -359,7 +381,9 @@ function (_Exchange) {
         var since,
             limit,
             params,
-            market,
+            response,
+            result,
+            trades,
             _args6 = arguments;
         return _regeneratorRuntime.wrap(function _callee6$(_context6) {
           while (1) {
@@ -372,17 +396,19 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 5:
-                market = this.market(symbol);
-                _context6.next = 8;
-                return this.publicGetRawTradeData(this.extend({
-                  'instrument': market['id'],
+                _context6.next = 7;
+                return this.publicGetGetRawTradeData(this.extend({
+                  'instrument': symbol,
                   'timespan': 3600
                 }, params));
 
-              case 8:
-                return _context6.abrupt("return", _context6.sent);
+              case 7:
+                response = _context6.sent;
+                result = response['result'];
+                trades = result['data'];
+                return _context6.abrupt("return", this.parseTrades(trades, symbol));
 
-              case 9:
+              case 11:
               case "end":
                 return _context6.stop();
             }
@@ -420,7 +446,7 @@ function (_Exchange) {
                   'orderType': side.toUpperCase(),
                   'amount': amount
                 };
-                if (type == 'limit') order['price'] = price;
+                if (type === 'limit') order['price'] = price;
                 _context7.next = 8;
                 return this.privatePostPlaceOrder(this.extend(order, params));
 
@@ -489,7 +515,7 @@ function (_Exchange) {
       var url = this.urls['api'][api];
       var auth = {};
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         auth['key'] = this.apiKey;
         auth['user'] = this.login;
@@ -498,7 +524,7 @@ function (_Exchange) {
 
       var nonce = this.nonce();
 
-      if (method == 'GET') {
+      if (method === 'GET') {
         url += '?' + this.urlencode(this.extend({
           'method': path,
           'id': nonce
@@ -522,60 +548,31 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee9(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args9 = arguments;
-        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
-          while (1) {
-            switch (_context9.prev = _context9.next) {
-              case 0:
-                api = _args9.length > 1 && _args9[1] !== undefined ? _args9[1] : 'public';
-                method = _args9.length > 2 && _args9[2] !== undefined ? _args9[2] : 'GET';
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
-                headers = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : undefined;
-                body = _args9.length > 5 && _args9[5] !== undefined ? _args9[5] : undefined;
-                _context9.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      if (code === 200) {
+        if (body[0] === '{' || body[0] === '[') {
+          var response = JSON.parse(body);
 
-              case 7:
-                response = _context9.sent;
+          if ('result' in response) {
+            var result = response['result'];
 
-                if (!('error' in response)) {
-                  _context9.next = 11;
-                  break;
-                }
+            if ('errorCode' in result) {
+              var errorCode = result['errorCode'];
 
-                if (!response['error']) {
-                  _context9.next = 11;
-                  break;
-                }
-
-                throw new ExchangeError(this.id + ' ' + this.json(response));
-
-              case 11:
-                return _context9.abrupt("return", response);
-
-              case 12:
-              case "end":
-                return _context9.stop();
+              if (errorCode !== 'OK') {
+                throw new ExchangeError(this.id + ' error returned: ' + body);
+              }
             }
+          } else {
+            throw new ExchangeError(this.id + ' malformed response: no result in response: ' + body);
           }
-        }, _callee9, this);
-      }));
-
-      return function request(_x10) {
-        return _request.apply(this, arguments);
-      };
-    }()
+        } else {
+          // if not a JSON response
+          throw new ExchangeError(this.id + ' returned a non-JSON reply: ' + body);
+        }
+      }
+    }
   }]);
 
   return virwox;

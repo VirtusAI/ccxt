@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$getPrototypeOf = require("@babel/runtime/core-js/object/get-prototype-of");
 
@@ -35,9 +35,11 @@ function (_acx) {
         'countries': 'CN',
         'rateLimit': 1000,
         'version': 'v2',
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true,
+          'fetchOHLCV': true
+        },
         'timeframes': {
           '1m': '1',
           '5m': '5',

@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -41,8 +41,10 @@ function (_Exchange) {
         'countries': 'JP',
         'version': 'v1',
         'rateLimit': 500,
-        'hasCORS': false,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28051642-56154182-660e-11e7-9b0d-6042d1e6edd8.jpg',
           'api': 'https://api.bitflyer.jp',
@@ -51,11 +53,11 @@ function (_Exchange) {
         },
         'api': {
           'public': {
-            'get': ['getmarkets', // or 'markets'
-            'getboard', // or 'board'
-            'getticker', // or 'ticker'
-            'getexecutions', // or 'executions'
-            'gethealth', 'getchats']
+            'get': ['getmarkets/usa', // new (wip)
+            'getmarkets/eu', // new (wip)
+            'getmarkets', // or 'markets'
+            'getboard', // ...
+            'getticker', 'getexecutions', 'gethealth', 'getchats']
           },
           'private': {
             'get': ['getpermissions', 'getbalance', 'getcollateral', 'getcollateralaccounts', 'getaddresses', 'getcoinins', 'getcoinouts', 'getbankaccounts', 'getdeposits', 'getwithdrawals', 'getchildorders', 'getparentorders', 'getparentorder', 'getexecutions', 'getpositions', 'gettradingcommission'],
@@ -76,16 +78,28 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, result, p, market, id, currencies, base, quote, symbol, numCurrencies;
+        var jp_markets, us_markets, eu_markets, markets, result, p, market, id, currencies, base, quote, symbol, numCurrencies;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
                 _context.next = 2;
-                return this.publicGetMarkets();
+                return this.publicGetGetmarkets();
 
               case 2:
-                markets = _context.sent;
+                jp_markets = _context.sent;
+                _context.next = 5;
+                return this.publicGetGetmarketsUsa();
+
+              case 5:
+                us_markets = _context.sent;
+                _context.next = 8;
+                return this.publicGetGetmarketsEu();
+
+              case 8:
+                eu_markets = _context.sent;
+                markets = this.arrayConcat(jp_markets, us_markets);
+                markets = this.arrayConcat(markets, eu_markets);
                 result = [];
 
                 for (p = 0; p < markets.length; p++) {
@@ -97,10 +111,10 @@ function (_Exchange) {
                   symbol = id;
                   numCurrencies = currencies.length;
 
-                  if (numCurrencies == 1) {
+                  if (numCurrencies === 1) {
                     base = symbol.slice(0, 3);
                     quote = symbol.slice(3, 6);
-                  } else if (numCurrencies == 2) {
+                  } else if (numCurrencies === 2) {
                     base = currencies[0];
                     quote = currencies[1];
                     symbol = base + '/' + quote;
@@ -120,7 +134,7 @@ function (_Exchange) {
 
                 return _context.abrupt("return", result);
 
-              case 6:
+              case 14:
               case "end":
                 return _context.stop();
             }
@@ -161,7 +175,7 @@ function (_Exchange) {
 
               case 3:
                 _context2.next = 5;
-                return this.privateGetBalance();
+                return this.privateGetGetbalance();
 
               case 5:
                 response = _context2.sent;
@@ -224,7 +238,7 @@ function (_Exchange) {
 
               case 3:
                 _context3.next = 5;
-                return this.publicGetBoard(this.extend({
+                return this.publicGetGetboard(this.extend({
                   'product_code': this.marketId(symbol)
                 }, params));
 
@@ -264,7 +278,7 @@ function (_Exchange) {
 
               case 3:
                 _context4.next = 5;
-                return this.publicGetTicker(this.extend({
+                return this.publicGetGetticker(this.extend({
                   'product_code': this.marketId(symbol)
                 }, params));
 
@@ -354,7 +368,7 @@ function (_Exchange) {
               case 5:
                 market = this.market(symbol);
                 _context5.next = 8;
-                return this.publicGetExecutions(this.extend({
+                return this.publicGetGetexecutions(this.extend({
                   'product_code': market['id']
                 }, params));
 
@@ -469,33 +483,35 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee8(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             response,
             _args8 = arguments;
         return _regeneratorRuntime.wrap(function _callee8$(_context8) {
           while (1) {
             switch (_context8.prev = _context8.next) {
               case 0:
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                _context8.next = 3;
+                tag = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : undefined;
+                params = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : {};
+                _context8.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context8.next = 5;
+              case 4:
+                _context8.next = 6;
                 return this.privatePostWithdraw(this.extend({
                   'currency_code': currency,
                   'amount': amount // 'bank_account_id': 1234,
 
                 }, params));
 
-              case 5:
+              case 6:
                 response = _context8.sent;
                 return _context8.abrupt("return", {
                   'info': response,
                   'id': response['message_id']
                 });
 
-              case 7:
+              case 8:
               case "end":
                 return _context8.stop();
             }
@@ -516,20 +532,25 @@ function (_Exchange) {
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var request = '/' + this.version + '/';
-      if (api == 'private') request += 'me/';
+      if (api === 'private') request += 'me/';
       request += path;
 
-      if (method == 'GET') {
+      if (method === 'GET') {
         if (_Object$keys(params).length) request += '?' + this.urlencode(params);
       }
 
       var url = this.urls['api'] + request;
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
-        body = this.json(params);
-        var auth = [nonce, method, request, body].join('');
+        var auth = [nonce, method, request].join('');
+
+        if (_Object$keys(params).length) {
+          body = this.json(params);
+          auth += body;
+        }
+
         headers = {
           'ACCESS-KEY': this.apiKey,
           'ACCESS-TIMESTAMP': nonce,

@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -45,12 +45,18 @@ function (_Exchange) {
         'rateLimit': 1500,
         // 200 for private API
         'version': 'v1',
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'createMarketOrder': false,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27816857-ce7be644-6096-11e7-82d6-3c257263229c.jpg',
           'api': 'https://api.gemini.com',
           'www': 'https://gemini.com',
-          'doc': 'https://docs.gemini.com/rest-api'
+          'doc': ['https://docs.gemini.com/rest-api', 'https://docs.sandbox.gemini.com'],
+          'test': 'https://api.sandbox.gemini.com',
+          'fees': ['https://gemini.com/fee-schedule/', 'https://gemini.com/transfer-fees/']
         },
         'api': {
           'public': {
@@ -357,7 +363,7 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context6.next = 6;
                   break;
                 }
@@ -437,6 +443,113 @@ function (_Exchange) {
       };
     }()
   }, {
+    key: "fetchMyTrades",
+    value: function () {
+      var _fetchMyTrades = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee8() {
+        var symbol,
+            since,
+            limit,
+            params,
+            market,
+            request,
+            response,
+            _args8 = arguments;
+        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+          while (1) {
+            switch (_context8.prev = _context8.next) {
+              case 0:
+                symbol = _args8.length > 0 && _args8[0] !== undefined ? _args8[0] : undefined;
+                since = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : undefined;
+                limit = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : undefined;
+                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
+
+                if (!(typeof symbol === 'undefined')) {
+                  _context8.next = 6;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' fetchMyTrades requires a symbol argument');
+
+              case 6:
+                _context8.next = 8;
+                return this.loadMarkets();
+
+              case 8:
+                market = this.market(symbol);
+                request = {
+                  'symbol': market['id']
+                };
+                if (typeof limit !== 'undefined') request['limit'] = limit;
+                _context8.next = 13;
+                return this.privatePostMytrades(this.extend(request, params));
+
+              case 13:
+                response = _context8.sent;
+                return _context8.abrupt("return", this.parseTrades(response, market, since, limit));
+
+              case 15:
+              case "end":
+                return _context8.stop();
+            }
+          }
+        }, _callee8, this);
+      }));
+
+      return function fetchMyTrades() {
+        return _fetchMyTrades.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "withdraw",
+    value: function () {
+      var _withdraw = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee9(code, amount, address) {
+        var tag,
+            params,
+            currency,
+            response,
+            _args9 = arguments;
+        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
+          while (1) {
+            switch (_context9.prev = _context9.next) {
+              case 0:
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
+                _context9.next = 4;
+                return this.loadMarkets();
+
+              case 4:
+                currency = this.currency(code);
+                _context9.next = 7;
+                return this.privatePostWithdrawCurrency(this.extend({
+                  'currency': currency['id'],
+                  'amount': amount,
+                  'address': address
+                }, params));
+
+              case 7:
+                response = _context9.sent;
+                return _context9.abrupt("return", {
+                  'info': response,
+                  'id': this.safeString(response, 'txHash')
+                });
+
+              case 9:
+              case "end":
+                return _context9.stop();
+            }
+          }
+        }, _callee9, this);
+      }));
+
+      return function withdraw(_x9, _x10, _x11) {
+        return _withdraw.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "sign",
     value: function sign(path) {
       var api = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'public';
@@ -447,7 +560,7 @@ function (_Exchange) {
       var url = '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -480,53 +593,53 @@ function (_Exchange) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee8(path) {
+      _regeneratorRuntime.mark(function _callee10(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args8 = arguments;
-        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+            _args10 = arguments;
+        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
           while (1) {
-            switch (_context8.prev = _context8.next) {
+            switch (_context10.prev = _context10.next) {
               case 0:
-                api = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : 'public';
-                method = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : 'GET';
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                headers = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : undefined;
-                body = _args8.length > 5 && _args8[5] !== undefined ? _args8[5] : undefined;
-                _context8.next = 7;
+                api = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : 'public';
+                method = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : 'GET';
+                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
+                headers = _args10.length > 4 && _args10[4] !== undefined ? _args10[4] : undefined;
+                body = _args10.length > 5 && _args10[5] !== undefined ? _args10[5] : undefined;
+                _context10.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context8.sent;
+                response = _context10.sent;
 
                 if (!('result' in response)) {
-                  _context8.next = 11;
+                  _context10.next = 11;
                   break;
                 }
 
-                if (!(response['result'] == 'error')) {
-                  _context8.next = 11;
+                if (!(response['result'] === 'error')) {
+                  _context10.next = 11;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + this.json(response));
 
               case 11:
-                return _context8.abrupt("return", response);
+                return _context10.abrupt("return", response);
 
               case 12:
               case "end":
-                return _context8.stop();
+                return _context10.stop();
             }
           }
-        }, _callee8, this);
+        }, _callee10, this);
       }));
 
-      return function request(_x9) {
+      return function request(_x12) {
         return _request.apply(this, arguments);
       };
     }()

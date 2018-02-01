@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -45,7 +45,10 @@ function (_Exchange) {
         'countries': 'AU',
         // Australia
         'rateLimit': 1000,
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'createMarketOrder': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28208429-3cacdf9a-6896-11e7-854e-4c79a772a30f.jpg',
           'api': {
@@ -127,7 +130,7 @@ function (_Exchange) {
                       'used': 0.0,
                       'total': balances[currency]
                     };
-                    if (uppercase == 'DRK') uppercase = 'DASH';
+                    if (uppercase === 'DRK') uppercase = 'DASH';
                     result[uppercase] = account;
                   }
                 }
@@ -278,7 +281,6 @@ function (_Exchange) {
       _regeneratorRuntime.mark(function _callee4(id) {
         var symbol,
             params,
-            method,
             _args4 = arguments;
         return _regeneratorRuntime.wrap(function _callee4$(_context4) {
           while (1) {
@@ -288,10 +290,7 @@ function (_Exchange) {
                 params = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : {};
                 throw new ExchangeError(this.id + ' cancelOrder () is not fully implemented yet');
 
-              case 6:
-                return _context4.abrupt("return", _context4.sent);
-
-              case 7:
+              case 3:
               case "end":
                 return _context4.stop();
             }
@@ -314,7 +313,7 @@ function (_Exchange) {
       if (!this.apiKey) throw new AuthenticationError(this.id + ' requires apiKey for all requests');
       var url = this.urls['api'][api] + '/' + path;
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         body = this.json(this.extend({

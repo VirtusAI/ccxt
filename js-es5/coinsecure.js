@@ -45,7 +45,9 @@ function (_Exchange) {
         // India
         'rateLimit': 1000,
         'version': 'v1',
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766472-9cbd200a-5ed9-11e7-9551-2267ad7bac08.jpg',
           'api': 'https://api.coinsecure.in',
@@ -192,6 +194,8 @@ function (_Exchange) {
             timestamp,
             baseVolume,
             satoshi,
+            quoteVolume,
+            vwap,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
@@ -212,28 +216,30 @@ function (_Exchange) {
                   baseVolume = baseVolume * satoshi;
                 }
 
+                quoteVolume = parseFloat(ticker['fiatvolume']) / 100;
+                vwap = quoteVolume / baseVolume;
                 return _context3.abrupt("return", {
                   'symbol': symbol,
                   'timestamp': timestamp,
                   'datetime': this.iso8601(timestamp),
-                  'high': parseFloat(ticker['high']),
-                  'low': parseFloat(ticker['low']),
-                  'bid': parseFloat(ticker['bid']),
-                  'ask': parseFloat(ticker['ask']),
-                  'vwap': undefined,
-                  'open': parseFloat(ticker['open']),
+                  'high': parseFloat(ticker['high']) / 100,
+                  'low': parseFloat(ticker['low']) / 100,
+                  'bid': parseFloat(ticker['bid']) / 100,
+                  'ask': parseFloat(ticker['ask']) / 100,
+                  'vwap': vwap,
+                  'open': parseFloat(ticker['open']) / 100,
                   'close': undefined,
                   'first': undefined,
-                  'last': parseFloat(ticker['lastPrice']),
+                  'last': parseFloat(ticker['lastPrice']) / 100,
                   'change': undefined,
                   'percentage': undefined,
                   'average': undefined,
                   'baseVolume': baseVolume,
-                  'quoteVolume': parseFloat(ticker['fiatvolume']),
+                  'quoteVolume': quoteVolume,
                   'info': ticker
                 });
 
-              case 9:
+              case 11:
               case "end":
                 return _context3.stop();
             }
@@ -246,32 +252,89 @@ function (_Exchange) {
       };
     }()
   }, {
-    key: "fetchTrades",
-    value: function fetchTrades(symbol) {
-      var since = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var limit = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
-      var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-      return this.publicGetExchangeTrades(params);
+    key: "parseTrade",
+    value: function parseTrade(trade) {
+      var symbol = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+      var timestamp = trade['time'];
+      var side = trade['ordType'] == 'bid' ? 'buy' : 'sell';
+      return {
+        'id': undefined,
+        'timestamp': timestamp,
+        'datetime': this.iso8601(timestamp),
+        'order': undefined,
+        'symbol': symbol,
+        'type': undefined,
+        'side': side,
+        'price': this.safeFloat(trade, 'rate') / 100,
+        'amount': this.safeFloat(trade, 'vol') / 100000000,
+        'fee': undefined,
+        'info': trade
+      };
     }
+  }, {
+    key: "fetchTrades",
+    value: function () {
+      var _fetchTrades = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee4(symbol) {
+        var since,
+            limit,
+            params,
+            result,
+            trades,
+            _args4 = arguments;
+        return _regeneratorRuntime.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                since = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : undefined;
+                limit = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : undefined;
+                params = _args4.length > 3 && _args4[3] !== undefined ? _args4[3] : {};
+                _context4.next = 5;
+                return this.publicGetExchangeTrades(params);
+
+              case 5:
+                result = _context4.sent;
+
+                if (!('message' in result)) {
+                  _context4.next = 9;
+                  break;
+                }
+
+                trades = result['message'];
+                return _context4.abrupt("return", this.parseTrades(trades, symbol));
+
+              case 9:
+              case "end":
+                return _context4.stop();
+            }
+          }
+        }, _callee4, this);
+      }));
+
+      return function fetchTrades(_x3) {
+        return _fetchTrades.apply(this, arguments);
+      };
+    }()
   }, {
     key: "createOrder",
     value: function () {
       var _createOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee4(market, type, side, amount) {
+      _regeneratorRuntime.mark(function _callee5(market, type, side, amount) {
         var price,
             params,
             method,
             order,
             direction,
             response,
-            _args4 = arguments;
-        return _regeneratorRuntime.wrap(function _callee4$(_context4) {
+            _args5 = arguments;
+        return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
-            switch (_context4.prev = _context4.next) {
+            switch (_context5.prev = _context5.next) {
               case 0:
-                price = _args4.length > 4 && _args4[4] !== undefined ? _args4[4] : undefined;
-                params = _args4.length > 5 && _args4[5] !== undefined ? _args4[5] : {};
+                price = _args5.length > 4 && _args5[4] !== undefined ? _args5[4] : undefined;
+                params = _args5.length > 5 && _args5[5] !== undefined ? _args5[5] : {};
                 method = 'privatePutUserExchange';
                 order = {};
 
@@ -285,25 +348,25 @@ function (_Exchange) {
                   order['vol'] = amount;
                 }
 
-                _context4.next = 7;
-                return this[method](self.extend(order, params));
+                _context5.next = 7;
+                return this[method](this.extend(order, params));
 
               case 7:
-                response = _context4.sent;
-                return _context4.abrupt("return", {
+                response = _context5.sent;
+                return _context5.abrupt("return", {
                   'info': response,
                   'id': response['message']['orderID']
                 });
 
               case 9:
               case "end":
-                return _context4.stop();
+                return _context5.stop();
             }
           }
-        }, _callee4, this);
+        }, _callee5, this);
       }));
 
-      return function createOrder(_x3, _x4, _x5, _x6) {
+      return function createOrder(_x4, _x5, _x6, _x7) {
         return _createOrder.apply(this, arguments);
       };
     }()
@@ -312,31 +375,31 @@ function (_Exchange) {
     value: function () {
       var _cancelOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee5(id) {
+      _regeneratorRuntime.mark(function _callee6(id) {
         var symbol,
             params,
             method,
-            _args5 = arguments;
-        return _regeneratorRuntime.wrap(function _callee5$(_context5) {
+            _args6 = arguments;
+        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
           while (1) {
-            switch (_context5.prev = _context5.next) {
+            switch (_context6.prev = _context6.next) {
               case 0:
-                symbol = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
-                params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
+                symbol = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : undefined;
+                params = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : {};
                 throw new ExchangeError(this.id + ' cancelOrder () is not fully implemented yet');
 
               case 6:
-                return _context5.abrupt("return", _context5.sent);
+                return _context6.abrupt("return", _context6.sent);
 
               case 7:
               case "end":
-                return _context5.stop();
+                return _context6.stop();
             }
           }
-        }, _callee5, this);
+        }, _callee6, this);
       }));
 
-      return function cancelOrder(_x7) {
+      return function cancelOrder(_x8) {
         return _cancelOrder.apply(this, arguments);
       };
     }()
@@ -371,60 +434,31 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee6(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args6 = arguments;
-        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
-          while (1) {
-            switch (_context6.prev = _context6.next) {
-              case 0:
-                api = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : 'public';
-                method = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : 'GET';
-                params = _args6.length > 3 && _args6[3] !== undefined ? _args6[3] : {};
-                headers = _args6.length > 4 && _args6[4] !== undefined ? _args6[4] : undefined;
-                body = _args6.length > 5 && _args6[5] !== undefined ? _args6[5] : undefined;
-                _context6.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      if (code == 200) {
+        if (body[0] == '{' || body[0] == '[') {
+          var response = JSON.parse(body);
 
-              case 7:
-                response = _context6.sent;
+          if ('success' in response) {
+            var success = response['success'];
 
-                if (!('success' in response)) {
-                  _context6.next = 11;
-                  break;
-                }
-
-                if (!response['success']) {
-                  _context6.next = 11;
-                  break;
-                }
-
-                return _context6.abrupt("return", response);
-
-              case 11:
-                throw new ExchangeError(this.id + ' ' + this.json(response));
-
-              case 12:
-              case "end":
-                return _context6.stop();
+            if (!success) {
+              throw new ExchangeError(this.id + ' error returned: ' + body);
             }
-          }
-        }, _callee6, this);
-      }));
 
-      return function request(_x8) {
-        return _request.apply(this, arguments);
-      };
-    }()
+            if (!('message' in response)) {
+              throw new ExchangeError(this.id + ' malformed response: no "message" in response: ' + body);
+            }
+          } else {
+            throw new ExchangeError(this.id + ' malformed response: no "success" in response: ' + body);
+          }
+        } else {
+          // if not a JSON response
+          throw new ExchangeError(this.id + ' returned a non-JSON reply: ' + body);
+        }
+      }
+    }
   }]);
 
   return coinsecure;

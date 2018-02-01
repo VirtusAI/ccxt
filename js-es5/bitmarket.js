@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -43,9 +43,11 @@ function (_Exchange) {
         'name': 'BitMarket',
         'countries': ['PL', 'EU'],
         'rateLimit': 1500,
-        'hasCORS': false,
-        'hasFetchOHLCV': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'fetchOHLCV': true,
+          'withdraw': true
+        },
         'timeframes': {
           '90m': '90m',
           '6h': '6h',
@@ -323,7 +325,7 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var side = trade['type'] == 'bid' ? 'buy' : 'sell';
+      var side = trade['type'] === 'bid' ? 'buy' : 'sell';
       var timestamp = trade['date'] * 1000;
       return {
         'id': trade['tid'].toString(),
@@ -520,8 +522,8 @@ function (_Exchange) {
   }, {
     key: "isFiat",
     value: function isFiat(currency) {
-      if (currency == 'EUR') return true;
-      if (currency == 'PLN') return true;
+      if (currency === 'EUR') return true;
+      if (currency === 'PLN') return true;
       return false;
     }
   }, {
@@ -530,7 +532,8 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee8(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             method,
             request,
             response,
@@ -539,11 +542,12 @@ function (_Exchange) {
           while (1) {
             switch (_context8.prev = _context8.next) {
               case 0:
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                _context8.next = 3;
+                tag = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : undefined;
+                params = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : {};
+                _context8.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 method = undefined;
                 request = {
                   'currency': currency,
@@ -551,83 +555,83 @@ function (_Exchange) {
                 };
 
                 if (!this.isFiat(currency)) {
-                  _context8.next = 26;
+                  _context8.next = 27;
                   break;
                 }
 
                 method = 'privatePostWithdrawFiat';
 
                 if (!('account' in params)) {
-                  _context8.next = 11;
+                  _context8.next = 12;
                   break;
                 }
 
                 request['account'] = params['account']; // bank account code for withdrawal
 
-                _context8.next = 12;
+                _context8.next = 13;
                 break;
 
-              case 11:
+              case 12:
                 throw new ExchangeError(this.id + ' requires account parameter to withdraw fiat currency');
 
-              case 12:
+              case 13:
                 if (!('account2' in params)) {
-                  _context8.next = 16;
+                  _context8.next = 17;
                   break;
                 }
 
                 request['account2'] = params['account2']; // bank SWIFT code (EUR only)
 
-                _context8.next = 18;
+                _context8.next = 19;
                 break;
 
-              case 16:
-                if (!(currency == 'EUR')) {
-                  _context8.next = 18;
+              case 17:
+                if (!(currency === 'EUR')) {
+                  _context8.next = 19;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' requires account2 parameter to withdraw EUR');
 
-              case 18:
+              case 19:
                 if (!('withdrawal_note' in params)) {
-                  _context8.next = 22;
+                  _context8.next = 23;
                   break;
                 }
 
                 request['withdrawal_note'] = params['withdrawal_note']; // a 10-character user-specified withdrawal note (PLN only)
 
-                _context8.next = 24;
+                _context8.next = 25;
                 break;
 
-              case 22:
-                if (!(currency == 'PLN')) {
-                  _context8.next = 24;
+              case 23:
+                if (!(currency === 'PLN')) {
+                  _context8.next = 25;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' requires withdrawal_note parameter to withdraw PLN');
 
-              case 24:
-                _context8.next = 28;
+              case 25:
+                _context8.next = 29;
                 break;
 
-              case 26:
+              case 27:
                 method = 'privatePostWithdraw';
                 request['address'] = address;
 
-              case 28:
-                _context8.next = 30;
+              case 29:
+                _context8.next = 31;
                 return this[method](this.extend(request, params));
 
-              case 30:
+              case 31:
                 response = _context8.sent;
                 return _context8.abrupt("return", {
                   'info': response,
                   'id': response
                 });
 
-              case 32:
+              case 33:
               case "end":
                 return _context8.stop();
             }
@@ -649,7 +653,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api];
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += '/' + this.implodeParams(path + '.json', params);
       } else {
         this.checkRequiredCredentials();

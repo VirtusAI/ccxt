@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -41,7 +41,9 @@ function (_Exchange) {
         'countries': ['AU', 'NZ'],
         // Australia, New Zealand
         'rateLimit': 1000,
-        'hasCORS': false,
+        'has': {
+          'CORS': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/30521662-cf3f477c-9bcb-11e7-89bc-d1ac85012eda.jpg',
           'api': {
@@ -73,12 +75,12 @@ function (_Exchange) {
             switch (_context.prev = _context.next) {
               case 0:
                 _context.next = 2;
-                return this.publicGetValidPrimaryCurrencyCodes();
+                return this.publicGetGetValidPrimaryCurrencyCodes();
 
               case 2:
                 baseCurrencies = _context.sent;
                 _context.next = 5;
-                return this.publicGetValidSecondaryCurrencyCodes();
+                return this.publicGetGetValidSecondaryCurrencyCodes();
 
               case 5:
                 quoteCurrencies = _context.sent;
@@ -207,7 +209,7 @@ function (_Exchange) {
               case 3:
                 market = this.market(symbol);
                 _context3.next = 6;
-                return this.publicGetOrderBook(this.extend({
+                return this.publicGetGetOrderBook(this.extend({
                   'primaryCurrencyCode': market['baseId'],
                   'secondaryCurrencyCode': market['quoteId']
                 }, params));
@@ -278,7 +280,7 @@ function (_Exchange) {
               case 3:
                 market = this.market(symbol);
                 _context4.next = 6;
-                return this.publicGetMarketSummary(this.extend({
+                return this.publicGetGetMarketSummary(this.extend({
                   'primaryCurrencyCode': market['baseId'],
                   'secondaryCurrencyCode': market['quoteId']
                 }, params));
@@ -341,7 +343,7 @@ function (_Exchange) {
               case 5:
                 market = this.market(symbol);
                 _context5.next = 8;
-                return this.publicGetRecentTrades(this.extend({
+                return this.publicGetGetRecentTrades(this.extend({
                   'primaryCurrencyCode': market['baseId'],
                   'secondaryCurrencyCode': market['quoteId'],
                   'numberOfRecentTradesToRetrieve': 50 // max = 50
@@ -391,15 +393,15 @@ function (_Exchange) {
               case 4:
                 market = this.market(symbol);
                 capitalizedOrderType = this.capitalize(type);
-                method = 'Place' + capitalizedOrderType + 'Order';
+                method = 'privatePostPlace' + capitalizedOrderType + 'Order';
                 orderType = capitalizedOrderType;
-                orderType += side == 'sell' ? 'Offer' : 'Bid';
+                orderType += side === 'sell' ? 'Offer' : 'Bid';
                 order = this.ordered({
                   'primaryCurrencyCode': market['baseId'],
                   'secondaryCurrencyCode': market['quoteId'],
                   'orderType': orderType
                 });
-                if (type == 'limit') order['price'] = price;
+                if (type === 'limit') order['price'] = price;
                 order['volume'] = amount;
                 _context6.next = 14;
                 return this[method](this.extend(order, params));
@@ -472,7 +474,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api] + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
       } else {
         this.checkRequiredCredentials();

@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _slicedToArray = require("@babel/runtime/helpers/slicedToArray");
 
@@ -23,8 +23,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
-    NotSupported = _require.NotSupported; //  ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -47,8 +46,11 @@ function (_Exchange) {
         'countries': 'KR',
         // South Korea
         'rateLimit': 500,
-        'hasCORS': true,
-        'hasFetchTickers': true,
+        'has': {
+          'CORS': true,
+          'fetchTickers': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/30597177-ea800172-9d5e-11e7-804c-b9d4fa9b56b0.jpg',
           'api': {
@@ -96,7 +98,7 @@ function (_Exchange) {
                 for (i = 0; i < currencies.length; i++) {
                   id = currencies[i];
 
-                  if (id != 'date') {
+                  if (id !== 'date') {
                     market = markets['data'][id];
                     base = id;
                     quote = 'KRW';
@@ -400,10 +402,11 @@ function (_Exchange) {
           transaction_date = _trade$transaction_da2[0],
           transaction_time = _trade$transaction_da2[1];
 
-      var transaction_time_short = transaction_time.length < 8;
-      if (transaction_time_short) transaction_time = '0' + transaction_time;
+      if (transaction_time.length < 8) transaction_time = '0' + transaction_time;
       var timestamp = this.parse8601(transaction_date + ' ' + transaction_time);
-      var side = trade['type'] == 'ask' ? 'sell' : 'buy';
+      timestamp -= 9 * 3600000; // they report UTC + 9 hours (server in Korean timezone)
+
+      var side = trade['type'] === 'ask' ? 'sell' : 'buy';
       return {
         'id': undefined,
         'info': trade,
@@ -466,73 +469,66 @@ function (_Exchange) {
     }()
   }, {
     key: "createOrder",
-    value: function createOrder(symbol, type, side, amount) {
-      var price = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-      var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
-      throw new NotSupported(this.id + ' private API not implemented yet'); //     let prefix = '';
-      //     if (type == 'market')
-      //         prefix = 'market_';
-      //     let order = {
-      //         'pair': this.marketId (symbol),
-      //         'quantity': amount,
-      //         'price': price || 0,
-      //         'type': prefix + side,
-      //     };
-      //     let response = await this.privatePostOrderCreate (this.extend (order, params));
-      //     return {
-      //         'info': response,
-      //         'id': response['order_id'].toString (),
-      //     };
-    }
-  }, {
-    key: "cancelOrder",
     value: function () {
-      var _cancelOrder = _asyncToGenerator(
+      var _createOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee7(id) {
-        var symbol,
+      _regeneratorRuntime.mark(function _callee7(symbol, type, side, amount) {
+        var price,
             params,
-            side,
-            currency,
+            market,
+            request,
+            method,
+            response,
+            id,
             _args7 = arguments;
         return _regeneratorRuntime.wrap(function _callee7$(_context7) {
           while (1) {
             switch (_context7.prev = _context7.next) {
               case 0:
-                symbol = _args7.length > 1 && _args7[1] !== undefined ? _args7[1] : undefined;
-                params = _args7.length > 2 && _args7[2] !== undefined ? _args7[2] : {};
-                side = 'side' in params;
+                price = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : undefined;
+                params = _args7.length > 5 && _args7[5] !== undefined ? _args7[5] : {};
+                _context7.next = 4;
+                return this.loadMarkets();
 
-                if (side) {
-                  _context7.next = 5;
-                  break;
+              case 4:
+                market = this.market(symbol);
+                request = undefined;
+                method = 'privatePostTrade';
+
+                if (type === 'limit') {
+                  request = {
+                    'order_currency': market['id'],
+                    'Payment_currency': market['quote'],
+                    'units': amount,
+                    'price': price,
+                    'type': side === 'buy' ? 'bid' : 'ask'
+                  };
+                  method += 'Place';
+                } else if (type === 'market') {
+                  request = {
+                    'currency': market['id'],
+                    'units': amount
+                  };
+                  method += 'Market' + this.capitalize(side);
                 }
 
-                throw new ExchangeError(this.id + ' cancelOrder requires a side parameter (sell or buy)');
+                _context7.next = 10;
+                return this[method](this.extend(request, params));
 
-              case 5:
-                side = side == 'buy' ? 'purchase' : 'sales';
-                currency = 'currency' in params;
+              case 10:
+                response = _context7.sent;
+                id = undefined;
 
-                if (currency) {
-                  _context7.next = 9;
-                  break;
+                if ('order_id' in response) {
+                  if (response['order_id']) id = response['order_id'].toString();
                 }
 
-                throw new ExchangeError(this.id + ' cancelOrder requires a currency parameter');
-
-              case 9:
-                _context7.next = 11;
-                return this.privatePostTradeCancel({
-                  'order_id': id,
-                  'type': params['side'],
-                  'currency': params['currency']
+                return _context7.abrupt("return", {
+                  'info': response,
+                  'id': id
                 });
 
-              case 11:
-                return _context7.abrupt("return", _context7.sent);
-
-              case 12:
+              case 14:
               case "end":
                 return _context7.stop();
             }
@@ -540,8 +536,129 @@ function (_Exchange) {
         }, _callee7, this);
       }));
 
-      return function cancelOrder(_x4) {
+      return function createOrder(_x4, _x5, _x6, _x7) {
+        return _createOrder.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "cancelOrder",
+    value: function () {
+      var _cancelOrder = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee8(id) {
+        var symbol,
+            params,
+            side,
+            currency,
+            _args8 = arguments;
+        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+          while (1) {
+            switch (_context8.prev = _context8.next) {
+              case 0:
+                symbol = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : undefined;
+                params = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : {};
+                side = 'side' in params;
+
+                if (side) {
+                  _context8.next = 5;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' cancelOrder requires a side parameter (sell or buy) and a currency parameter');
+
+              case 5:
+                side = side === 'buy' ? 'purchase' : 'sales';
+                currency = 'currency' in params;
+
+                if (currency) {
+                  _context8.next = 9;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' cancelOrder requires a currency parameter');
+
+              case 9:
+                _context8.next = 11;
+                return this.privatePostTradeCancel({
+                  'order_id': id,
+                  'type': params['side'],
+                  'currency': params['currency']
+                });
+
+              case 11:
+                return _context8.abrupt("return", _context8.sent);
+
+              case 12:
+              case "end":
+                return _context8.stop();
+            }
+          }
+        }, _callee8, this);
+      }));
+
+      return function cancelOrder(_x8) {
         return _cancelOrder.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "withdraw",
+    value: function () {
+      var _withdraw = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
+        var tag,
+            params,
+            request,
+            destination,
+            response,
+            _args9 = arguments;
+        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
+          while (1) {
+            switch (_context9.prev = _context9.next) {
+              case 0:
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
+                request = {
+                  'units': amount,
+                  'address': address,
+                  'currency': currency
+                };
+
+                if (!(currency === 'XRP' || currency === 'XMR')) {
+                  _context9.next = 7;
+                  break;
+                }
+
+                destination = 'destination' in params;
+
+                if (destination) {
+                  _context9.next = 7;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' ' + currency + ' withdraw requires an extra destination param');
+
+              case 7:
+                _context9.next = 9;
+                return this.privatePostTradeBtcWithdrawal(this.extend(request, params));
+
+              case 9:
+                response = _context9.sent;
+                return _context9.abrupt("return", {
+                  'info': response,
+                  'id': undefined
+                });
+
+              case 11:
+              case "end":
+                return _context9.stop();
+            }
+          }
+        }, _callee9, this);
+      }));
+
+      return function withdraw(_x9, _x10, _x11) {
+        return _withdraw.apply(this, arguments);
       };
     }()
   }, {
@@ -561,7 +678,7 @@ function (_Exchange) {
       var url = this.urls['api'][api] + endpoint;
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -569,11 +686,14 @@ function (_Exchange) {
           'endpoint': endpoint
         }, query));
         var nonce = this.nonce().toString();
-        var auth = endpoint + "\0" + body + "\0" + nonce;
+        var auth = endpoint + '\0' + body + '\0' + nonce;
         var signature = this.hmac(this.encode(auth), this.encode(this.secret), 'sha512');
+        var signature64 = this.decode(this.stringToBase64(this.encode(signature)));
         headers = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Api-Key': this.apiKey,
-          'Api-Sign': this.decode(this.stringToBase64(this.encode(signature))),
+          'Api-Sign': signature64.toString(),
           'Api-Nonce': nonce
         };
       }
@@ -590,56 +710,56 @@ function (_Exchange) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee8(path) {
+      _regeneratorRuntime.mark(function _callee10(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args8 = arguments;
-        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+            _args10 = arguments;
+        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
           while (1) {
-            switch (_context8.prev = _context8.next) {
+            switch (_context10.prev = _context10.next) {
               case 0:
-                api = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : 'public';
-                method = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : 'GET';
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                headers = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : undefined;
-                body = _args8.length > 5 && _args8[5] !== undefined ? _args8[5] : undefined;
-                _context8.next = 7;
+                api = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : 'public';
+                method = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : 'GET';
+                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
+                headers = _args10.length > 4 && _args10[4] !== undefined ? _args10[4] : undefined;
+                body = _args10.length > 5 && _args10[5] !== undefined ? _args10[5] : undefined;
+                _context10.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context8.sent;
+                response = _context10.sent;
 
                 if (!('status' in response)) {
-                  _context8.next = 12;
+                  _context10.next = 12;
                   break;
                 }
 
-                if (!(response['status'] == '0000')) {
-                  _context8.next = 11;
+                if (!(response['status'] === '0000')) {
+                  _context10.next = 11;
                   break;
                 }
 
-                return _context8.abrupt("return", response);
+                return _context10.abrupt("return", response);
 
               case 11:
                 throw new ExchangeError(this.id + ' ' + this.json(response));
 
               case 12:
-                return _context8.abrupt("return", response);
+                return _context10.abrupt("return", response);
 
               case 13:
               case "end":
-                return _context8.stop();
+                return _context10.stop();
             }
           }
-        }, _callee8, this);
+        }, _callee10, this);
       }));
 
-      return function request(_x5) {
+      return function request(_x12) {
         return _request.apply(this, arguments);
       };
     }()

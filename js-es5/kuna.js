@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -19,9 +19,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var acx = require('./acx.js');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
-    InsufficientFunds = _require.InsufficientFunds,
-    OrderNotFound = _require.OrderNotFound; // ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError; // ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -44,14 +42,17 @@ function (_acx) {
         'countries': 'UA',
         'rateLimit': 1000,
         'version': 'v2',
-        'hasCORS': false,
-        'hasFetchTickers': false,
-        'hasFetchOHLCV': false,
+        'has': {
+          'CORS': false,
+          'fetchTickers': false,
+          'fetchOHLCV': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/31697638-912824fa-b3c1-11e7-8c36-cf9606eb94ac.jpg',
           'api': 'https://kuna.io',
           'www': 'https://kuna.io',
-          'doc': 'https://kuna.io/documents/api'
+          'doc': 'https://kuna.io/documents/api',
+          'fees': 'https://kuna.io/documents/api'
         },
         'api': {
           'public': {
@@ -81,6 +82,10 @@ function (_acx) {
               'price': {
                 'min': 1,
                 'max': undefined
+              },
+              'cost': {
+                'min': 0.000001,
+                'max': undefined
               }
             }
           },
@@ -102,6 +107,10 @@ function (_acx) {
               'price': {
                 'min': 1,
                 'max': undefined
+              },
+              'cost': {
+                'min': 0.000001,
+                'max': undefined
               }
             }
           },
@@ -122,6 +131,10 @@ function (_acx) {
               },
               'price': {
                 'min': 0.01,
+                'max': undefined
+              },
+              'cost': {
+                'min': 0.000001,
                 'max': undefined
               }
             }
@@ -145,6 +158,10 @@ function (_acx) {
               'price': {
                 'min': 0.000001,
                 'max': undefined
+              },
+              'cost': {
+                'min': 0.000001,
+                'max': undefined
               }
             }
           },
@@ -164,6 +181,35 @@ function (_acx) {
                 'max': undefined
               },
               'price': {
+                'min': 0.000001,
+                'max': undefined
+              },
+              'cost': {
+                'min': 0.000001,
+                'max': undefined
+              }
+            }
+          },
+          'BCH/UAH': {
+            'id': 'bchuah',
+            'symbol': 'BCH/UAH',
+            'base': 'BCH',
+            'quote': 'UAH',
+            'precision': {
+              'amount': 6,
+              'price': 0
+            },
+            'lot': 0.000001,
+            'limits': {
+              'amount': {
+                'min': 0.000001,
+                'max': undefined
+              },
+              'price': {
+                'min': 1,
+                'max': undefined
+              },
+              'cost': {
                 'min': 0.000001,
                 'max': undefined
               }
@@ -187,32 +233,74 @@ function (_acx) {
               'price': {
                 'min': 1,
                 'max': undefined
+              },
+              'cost': {
+                'min': 0.000001,
+                'max': undefined
               }
             }
+          },
+          'ARN/BTC': {
+            'id': 'arnbtc',
+            'symbol': 'ARN/BTC',
+            'base': 'ARN',
+            'quote': 'BTC'
+          },
+          'B2B/BTC': {
+            'id': 'b2bbtc',
+            'symbol': 'B2B/BTC',
+            'base': 'B2B',
+            'quote': 'BTC'
+          },
+          'EVR/BTC': {
+            'id': 'evrbtc',
+            'symbol': 'EVR/BTC',
+            'base': 'EVR',
+            'quote': 'BTC'
+          },
+          'GOL/GBG': {
+            'id': 'golgbg',
+            'symbol': 'GOL/GBG',
+            'base': 'GOL',
+            'quote': 'GBG'
+          },
+          'R/BTC': {
+            'id': 'rbtc',
+            'symbol': 'R/BTC',
+            'base': 'R',
+            'quote': 'BTC'
+          },
+          'RMC/BTC': {
+            'id': 'rmcbtc',
+            'symbol': 'RMC/BTC',
+            'base': 'RMC',
+            'quote': 'BTC'
           }
         },
         'fees': {
           'trading': {
             'taker': 0.25 / 100,
             'maker': 0.25 / 100
+          },
+          'funding': {
+            'withdraw': {
+              'UAH': '1%',
+              'BTC': 0.001,
+              'BCH': 0.001,
+              'ETH': 0.01,
+              'WAVES': 0.01,
+              'GOL': 0.0,
+              'GBG': 0.0 // 'RMC': 0.001 BTC
+              // 'ARN': 0.01 ETH
+              // 'R': 0.01 ETH
+              // 'EVR': 0.01 ETH
+
+            },
+            'deposit': {// 'UAH': (amount) => amount * 0.001 + 5
+            }
           }
         }
       });
-    }
-  }, {
-    key: "handleErrors",
-    value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code == 400) {
-        var data = JSON.parse(body);
-        var error = data['error'];
-        var errorCode = error['code'];
-
-        if (errorCode == 2002) {
-          throw new InsufficientFunds([this.id, method, url, code, reason, body].join(' '));
-        } else if (errorCode == 2003) {
-          throw new OrderNotFound([this.id, method, url, code, reason, body].join(' '));
-        }
-      }
     }
   }, {
     key: "fetchOrderBook",
@@ -335,7 +423,7 @@ function (_acx) {
       var symbol = undefined;
       if (market) symbol = market['symbol'];
       return {
-        'id': trade['id'],
+        'id': trade['id'].toString(),
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'symbol': symbol,

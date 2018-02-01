@@ -44,7 +44,9 @@ function (_Exchange) {
         'name': 'coincheck',
         'countries': ['JP', 'ID'],
         'rateLimit': 1500,
-        'hasCORS': false,
+        'has': {
+          'CORS': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766464-3b5c3c74-5ed9-11e7-840e-31b32968e1da.jpg',
           'api': 'https://coincheck.com/api',
@@ -262,14 +264,14 @@ function (_Exchange) {
       var timestamp = this.parse8601(trade['created_at']);
       return {
         'id': trade['id'].toString(),
-        'info': trade,
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'symbol': market['symbol'],
         'type': undefined,
         'side': trade['order_type'],
         'price': parseFloat(trade['rate']),
-        'amount': parseFloat(trade['amount'])
+        'amount': parseFloat(trade['amount']),
+        'info': trade
       };
     }
   }, {
@@ -302,13 +304,34 @@ function (_Exchange) {
               case 5:
                 market = this.market(symbol);
                 _context4.next = 8;
-                return this.publicGetTrades(params);
+                return this.publicGetTrades(this.extend({
+                  'pair': market['id']
+                }, params));
 
               case 8:
                 response = _context4.sent;
-                return _context4.abrupt("return", this.parseTrades(response, market, since, limit));
 
-              case 10:
+                if (!('success' in response)) {
+                  _context4.next = 13;
+                  break;
+                }
+
+                if (!response['success']) {
+                  _context4.next = 13;
+                  break;
+                }
+
+                if (!(typeof response['data'] !== 'undefined')) {
+                  _context4.next = 13;
+                  break;
+                }
+
+                return _context4.abrupt("return", this.parseTrades(response['data'], market, since, limit));
+
+              case 13:
+                throw new ExchangeError(this.id + ' ' + this.json(response));
+
+              case 14:
               case "end":
                 return _context4.stop();
             }
@@ -328,20 +351,17 @@ function (_Exchange) {
       _regeneratorRuntime.mark(function _callee5(symbol, type, side, amount) {
         var price,
             params,
-            prefix,
             order,
             order_type,
-            _prefix,
+            prefix,
             response,
             _args5 = arguments;
-
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
                 price = _args5.length > 4 && _args5[4] !== undefined ? _args5[4] : undefined;
                 params = _args5.length > 5 && _args5[5] !== undefined ? _args5[5] : {};
-                prefix = '';
                 order = {
                   'pair': this.marketId(symbol)
                 };
@@ -349,25 +369,25 @@ function (_Exchange) {
                 if (type == 'market') {
                   order_type = type + '_' + side;
                   order['order_type'] = order_type;
-                  _prefix = side == 'buy' ? order_type + '_' : '';
-                  order[_prefix + 'amount'] = amount;
+                  prefix = side == 'buy' ? order_type + '_' : '';
+                  order[prefix + 'amount'] = amount;
                 } else {
                   order['order_type'] = side;
                   order['rate'] = price;
                   order['amount'] = amount;
                 }
 
-                _context5.next = 7;
+                _context5.next = 6;
                 return this.privatePostExchangeOrders(this.extend(order, params));
 
-              case 7:
+              case 6:
                 response = _context5.sent;
                 return _context5.abrupt("return", {
                   'info': response,
                   'id': response['id'].toString()
                 });
 
-              case 9:
+              case 8:
               case "end":
                 return _context5.stop();
             }

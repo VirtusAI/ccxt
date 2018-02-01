@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -46,10 +46,13 @@ function (_Exchange) {
         'countries': 'JP',
         'rateLimit': 2000,
         'version': '1',
-        'hasCORS': false,
-        'hasFetchOpenOrders': true,
-        'hasFetchClosedOrders': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'createMarketOrder': false,
+          'fetchOpenOrders': true,
+          'fetchClosedOrders': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766927-39ca2ada-5eeb-11e7-972f-1b4199518ca6.jpg',
           'api': 'https://api.zaif.jp',
@@ -302,7 +305,7 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var side = trade['trade_type'] == 'bid' ? 'buy' : 'sell';
+      var side = trade['trade_type'] === 'bid' ? 'buy' : 'sell';
       var timestamp = trade['date'] * 1000;
       var id = this.safeString(trade, 'id');
       id = this.safeString(trade, 'tid', id);
@@ -384,7 +387,7 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context6.next = 6;
                   break;
                 }
@@ -395,7 +398,7 @@ function (_Exchange) {
                 _context6.next = 8;
                 return this.privatePostTrade(this.extend({
                   'currency_pair': this.marketId(symbol),
-                  'action': side == 'buy' ? 'bid' : 'ask',
+                  'action': side === 'buy' ? 'bid' : 'ask',
                   'amount': amount,
                   'price': price
                 }, params));
@@ -458,7 +461,7 @@ function (_Exchange) {
     key: "parseOrder",
     value: function parseOrder(order) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var side = order['action'] == 'bid' ? 'buy' : 'sell';
+      var side = order['action'] === 'bid' ? 'buy' : 'sell';
       var timestamp = parseInt(order['timestamp']) * 1000;
       if (!market) market = this.markets_by_id[order['currency_pair']];
       var price = order['price'];
@@ -624,27 +627,29 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee10(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             result,
             _args10 = arguments;
         return _regeneratorRuntime.wrap(function _callee10$(_context10) {
           while (1) {
             switch (_context10.prev = _context10.next) {
               case 0:
-                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
-                _context10.next = 3;
+                tag = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : undefined;
+                params = _args10.length > 4 && _args10[4] !== undefined ? _args10[4] : {};
+                _context10.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                if (!(currency == 'JPY')) {
-                  _context10.next = 5;
+              case 4:
+                if (!(currency === 'JPY')) {
+                  _context10.next = 6;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' does not allow ' + currency + ' withdrawals');
 
-              case 5:
-                _context10.next = 7;
+              case 6:
+                _context10.next = 8;
                 return this.privatePostWithdraw(this.extend({
                   'currency': currency,
                   'amount': amount,
@@ -653,7 +658,7 @@ function (_Exchange) {
 
                 }, params));
 
-              case 7:
+              case 8:
                 result = _context10.sent;
                 return _context10.abrupt("return", {
                   'info': result,
@@ -661,7 +666,7 @@ function (_Exchange) {
                   'fee': result['return']['fee']
                 });
 
-              case 9:
+              case 10:
               case "end":
                 return _context10.stop();
             }
@@ -683,16 +688,16 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/';
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += 'api/' + this.version + '/' + this.implodeParams(path, params);
-      } else if (api == 'fapi') {
+      } else if (api === 'fapi') {
         url += 'fapi/' + this.version + '/' + this.implodeParams(path, params);
       } else {
         this.checkRequiredCredentials();
 
-        if (api == 'ecapi') {
+        if (api === 'ecapi') {
           url += 'ecapi';
-        } else if (api == 'tlapi') {
+        } else if (api === 'tlapi') {
           url += 'tlapi';
         } else {
           url += 'tapi';

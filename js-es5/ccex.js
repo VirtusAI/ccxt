@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _slicedToArray = require("@babel/runtime/helpers/slicedToArray");
 
@@ -45,8 +45,10 @@ function (_Exchange) {
         'name': 'C-CEX',
         'countries': ['DE', 'EU'],
         'rateLimit': 1500,
-        'hasCORS': false,
-        'hasFetchTickers': true,
+        'has': {
+          'CORS': false,
+          'fetchTickers': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766433-16881f90-5ed8-11e7-92f8-3d92cc747a6c.jpg',
           'api': {
@@ -79,9 +81,9 @@ function (_Exchange) {
   }, {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
-      if (currency == 'IOT') return 'IoTcoin';
-      if (currency == 'BLC') return 'Cryptobullcoin';
-      if (currency == 'XID') return 'InternationalDiamond';
+      if (currency === 'IOT') return 'IoTcoin';
+      if (currency === 'BLC') return 'Cryptobullcoin';
+      if (currency === 'XID') return 'InternationalDiamond';
       return currency;
     }
   }, {
@@ -546,7 +548,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api];
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
         var query = this.keysort(this.extend({
@@ -558,7 +560,7 @@ function (_Exchange) {
         headers = {
           'apisign': this.hmac(this.encode(url), this.encode(this.secret), 'sha512')
         };
-      } else if (api == 'public') {
+      } else if (api === 'public') {
         url += '?' + this.urlencode(this.extend({
           'a': 'get' + path
         }, params));
@@ -601,7 +603,7 @@ function (_Exchange) {
               case 7:
                 response = _context9.sent;
 
-                if (!(api == 'tickers')) {
+                if (!(api === 'tickers')) {
                   _context9.next = 10;
                   break;
                 }

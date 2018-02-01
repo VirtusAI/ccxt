@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -44,9 +44,11 @@ function (_Exchange) {
         'countries': 'TR',
         // Turkey
         'rateLimit': 1000,
-        'hasCORS': true,
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': true,
+        'has': {
+          'CORS': true,
+          'fetchTickers': true,
+          'fetchOHLCV': true
+        },
         'timeframes': {
           '1d': '1d'
         },
@@ -411,7 +413,7 @@ function (_Exchange) {
               case 6:
                 market = this.market(symbol);
                 request = {};
-                if (limit) request['last'] = limit;
+                if (typeof limit !== 'undefined') request['last'] = limit;
                 _context6.next = 11;
                 return this.publicGetOhlcdata(this.extend(request, params));
 
@@ -451,12 +453,12 @@ function (_Exchange) {
                 params = _args7.length > 5 && _args7[5] !== undefined ? _args7[5] : {};
                 method = 'privatePost' + this.capitalize(side);
                 order = {
-                  'Type': side == 'buy' ? 'BuyBtc' : 'SelBtc',
-                  'IsMarketOrder': type == 'market' ? 1 : 0
+                  'Type': side === 'buy' ? 'BuyBtc' : 'SelBtc',
+                  'IsMarketOrder': type === 'market' ? 1 : 0
                 };
 
-                if (type == 'market') {
-                  if (side == 'buy') order['Total'] = amount;else order['Amount'] = amount;
+                if (type === 'market') {
+                  if (side === 'buy') order['Total'] = amount;else order['Amount'] = amount;
                 } else {
                   order['Price'] = price;
                   order['Amount'] = amount;
@@ -532,10 +534,10 @@ function (_Exchange) {
       var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
-      if (this.id == 'btctrader') throw new ExchangeError(this.id + ' is an abstract base API for BTCExchange, BTCTurk');
+      if (this.id === 'btctrader') throw new ExchangeError(this.id + ' is an abstract base API for BTCExchange, BTCTurk');
       var url = this.urls['api'] + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
       } else {
         this.checkRequiredCredentials();

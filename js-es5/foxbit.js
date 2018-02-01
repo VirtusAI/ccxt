@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -42,7 +42,10 @@ function (_Exchange) {
         'id': 'foxbit',
         'name': 'FoxBit',
         'countries': 'BR',
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'createMarketOrder': false
+        },
         'rateLimit': 1000,
         'version': 'v1',
         'urls': {
@@ -234,7 +237,7 @@ function (_Exchange) {
     value: function parseTrade(trade, market) {
       var timestamp = trade['date'] * 1000;
       return {
-        'id': trade['tid'],
+        'id': this.safeString(trade, 'tid'),
         'info': trade,
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
@@ -309,7 +312,7 @@ function (_Exchange) {
                 price = _args4.length > 4 && _args4[4] !== undefined ? _args4[4] : undefined;
                 params = _args4.length > 5 && _args4[5] !== undefined ? _args4[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context4.next = 4;
                   break;
                 }
@@ -318,7 +321,7 @@ function (_Exchange) {
 
               case 4:
                 market = this.market(symbol);
-                orderSide = side == 'buy' ? '1' : '2';
+                orderSide = side === 'buy' ? '1' : '2';
                 order = {
                   'ClOrdID': this.nonce(),
                   'Symbol': market['id'],
@@ -398,7 +401,7 @@ function (_Exchange) {
       var url = this.urls['api'][api] + '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -455,7 +458,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['Status'] != 200)) {
+                if (!(response['Status'] !== 200)) {
                   _context6.next = 11;
                   break;
                 }

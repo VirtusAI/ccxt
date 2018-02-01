@@ -1,12 +1,12 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
-
-var _slicedToArray = require("@babel/runtime/helpers/slicedToArray");
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
 var _asyncToGenerator = require("@babel/runtime/helpers/asyncToGenerator");
+
+var _defineProperty = require("@babel/runtime/helpers/defineProperty");
 
 var _Object$getPrototypeOf = require("@babel/runtime/core-js/object/get-prototype-of");
 
@@ -23,6 +23,8 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
+    DDoSProtection = _require.DDoSProtection,
+    AuthenticationError = _require.AuthenticationError,
     ExchangeError = _require.ExchangeError,
     InsufficientFunds = _require.InsufficientFunds,
     NotSupported = _require.NotSupported,
@@ -44,23 +46,19 @@ function (_Exchange) {
   _createClass(bitfinex, [{
     key: "describe",
     value: function describe() {
+      var _withdraw;
+
       return this.deepExtend(_get(bitfinex.prototype.__proto__ || _Object$getPrototypeOf(bitfinex.prototype), "describe", this).call(this), {
         'id': 'bitfinex',
         'name': 'Bitfinex',
-        'countries': 'US',
+        'countries': 'VG',
         'version': 'v1',
         'rateLimit': 1500,
-        'hasCORS': false,
-        // old metainfo interface
-        'hasFetchOrder': true,
-        'hasFetchTickers': true,
-        'hasDeposit': true,
-        'hasWithdraw': true,
-        'hasFetchOHLCV': true,
-        'hasFetchOpenOrders': true,
-        'hasFetchClosedOrders': true,
         // new metainfo interface
         'has': {
+          'createDepositAddress': true,
+          'fetchDepositAddress': true,
+          'CORS': false,
           'fetchOHLCV': true,
           'fetchTickers': true,
           'fetchOrder': true,
@@ -129,7 +127,7 @@ function (_Exchange) {
               'SAN': 0.1,
               'DASH': 0.01,
               'ETC': 0.01,
-              'XPR': 0.02,
+              'XRP': 0.02,
               'YYW': 0.1,
               'NEO': 0,
               'ZEC': 0.1,
@@ -143,31 +141,18 @@ function (_Exchange) {
               'AVT': 0.5,
               'USDT': 0
             },
-            'withdraw': {
-              'BTC': 0.0005,
+            'withdraw': (_withdraw = {
+              'BTC': 0.0008,
               'IOTA': 0.5,
               'ETH': 0.01,
-              'BCH': 0.01,
-              'LTC': 0.1,
-              'EOS': 0.1,
-              'XMR': 0.04,
-              'SAN': 0.1,
-              'DASH': 0.01,
               'ETC': 0.01,
-              'XPR': 0.02,
-              'YYW': 0.1,
-              'NEO': 0,
-              'ZEC': 0.1,
-              'BTG': 0,
-              'OMG': 0.1,
-              'DATA': 1,
-              'QASH': 1,
-              'ETP': 0.01,
-              'QTUM': 0.01,
-              'EDO': 0.5,
-              'AVT': 0.5,
-              'USDT': 5
-            }
+              'BCH': 0.0001,
+              'LTC': 0.001,
+              'EOS': 0.8609,
+              'XMR': 0.04,
+              'SAN': 3.2779,
+              'DASH': 0.01
+            }, _defineProperty(_withdraw, "ETC", 0.01), _defineProperty(_withdraw, 'XRP', 0.02), _defineProperty(_withdraw, 'YYW', 40.543), _defineProperty(_withdraw, 'NEO', 0), _defineProperty(_withdraw, 'ZEC', 0.001), _defineProperty(_withdraw, 'BTG', 0), _defineProperty(_withdraw, 'OMG', 0.5897), _defineProperty(_withdraw, 'DATA', 52.405), _defineProperty(_withdraw, 'FUN', 90.402), _defineProperty(_withdraw, 'GNT', 15.435), _defineProperty(_withdraw, 'MNA', 76.821), _defineProperty(_withdraw, 'BAT', 17.223), _defineProperty(_withdraw, 'SPK', 24.708), _defineProperty(_withdraw, 'QASH', 6.1629), _defineProperty(_withdraw, 'ETP', 0.01), _defineProperty(_withdraw, 'QTUM', 0.01), _defineProperty(_withdraw, 'EDO', 2.5238), _defineProperty(_withdraw, 'AVT', 3.2495), _defineProperty(_withdraw, 'USDT', 20.0), _defineProperty(_withdraw, 'ZRX', 5.6442), _defineProperty(_withdraw, "ETP", 0.01), _defineProperty(_withdraw, 'TNB', 87.511), _defineProperty(_withdraw, 'SNT', 32.736), _withdraw)
           }
         }
       });
@@ -175,14 +160,16 @@ function (_Exchange) {
   }, {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
-      // issue #4 Bitfinex names Dash as DSH, instead of DASH
-      if (currency == 'DSH') return 'DASH';
-      if (currency == 'QTM') return 'QTUM';
-      if (currency == 'BCC') return 'CST_BCC';
-      if (currency == 'BCU') return 'CST_BCU'; // issue #796
-
-      if (currency == 'IOT') return 'IOTA';
-      return currency;
+      var currencies = {
+        'DSH': 'DASH',
+        // Bitfinex names Dash as DSH, instead of DASH
+        'QTM': 'QTUM',
+        'BCC': 'CST_BCC',
+        'BCU': 'CST_BCU',
+        'IOT': 'IOTA',
+        'DAT': 'DATA'
+      };
+      return currency in currencies ? currencies[currency] : currency;
     }
   }, {
     key: "fetchMarkets",
@@ -190,7 +177,7 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, result, p, market, id, baseId, quoteId, base, quote, symbol, precision;
+        var markets, result, p, market, id, baseId, quoteId, base, quote, symbol, precision, limits;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -214,6 +201,20 @@ function (_Exchange) {
                     'price': market['price_precision'],
                     'amount': market['price_precision']
                   };
+                  limits = {
+                    'amount': {
+                      'min': parseFloat(market['minimum_order_size']),
+                      'max': parseFloat(market['maximum_order_size'])
+                    },
+                    'price': {
+                      'min': Math.pow(10, -precision['price']),
+                      'max': Math.pow(10, precision['price'])
+                    }
+                  };
+                  limits['cost'] = {
+                    'min': limits['amount']['min'] * limits['price']['min'],
+                    'max': undefined
+                  };
                   result.push(this.extend(this.fees['trading'], {
                     'id': id,
                     'symbol': symbol,
@@ -222,22 +223,10 @@ function (_Exchange) {
                     'baseId': baseId,
                     'quoteId': quoteId,
                     'active': true,
-                    'info': market,
                     'precision': precision,
-                    'limits': {
-                      'amount': {
-                        'min': parseFloat(market['minimum_order_size']),
-                        'max': parseFloat(market['maximum_order_size'])
-                      },
-                      'price': {
-                        'min': Math.pow(10, -precision['price']),
-                        'max': Math.pow(10, precision['price'])
-                      },
-                      'cost': {
-                        'min': undefined,
-                        'max': undefined
-                      }
-                    }
+                    'limits': limits,
+                    'lot': Math.pow(10, -precision['amount']),
+                    'info': market
                   }));
                 }
 
@@ -293,7 +282,7 @@ function (_Exchange) {
                 for (i = 0; i < balances.length; i++) {
                   balance = balances[i];
 
-                  if (balance['type'] == balanceType) {
+                  if (balance['type'] === balanceType) {
                     currency = balance['currency'];
                     uppercase = currency.toUpperCase();
                     uppercase = this.commonCurrencyCode(uppercase);
@@ -629,15 +618,8 @@ function (_Exchange) {
                 request = {
                   'symbol': market['id']
                 };
-
-                if (limit) {
-                  request['limit_trades'] = limit;
-                }
-
-                if (since) {
-                  request['timestamp'] = parseInt(since / 1000);
-                }
-
+                if (typeof limit !== 'undefined') request['limit_trades'] = limit;
+                if (typeof since !== 'undefined') request['timestamp'] = parseInt(since / 1000);
                 _context7.next = 12;
                 return this.privatePostMytrades(this.extend(request, params));
 
@@ -680,7 +662,7 @@ function (_Exchange) {
 
               case 4:
                 orderType = type;
-                if (type == 'limit' || type == 'market') orderType = 'exchange ' + type; // amount = this.amountToPrecision (symbol, amount);
+                if (type === 'limit' || type === 'market') orderType = 'exchange ' + type; // amount = this.amountToPrecision (symbol, amount);
 
                 order = {
                   'symbol': this.marketId(symbol),
@@ -692,7 +674,7 @@ function (_Exchange) {
                   'sell_price_oco': 0
                 };
 
-                if (type == 'market') {
+                if (type === 'market') {
                   order['price'] = this.nonce().toString();
                 } else {
                   // price = this.priceToPrecision (symbol, price);
@@ -789,10 +771,8 @@ function (_Exchange) {
       var exchange = orderType.indexOf('exchange ') >= 0;
 
       if (exchange) {
-        var _order$type$split = order['type'].split(' '),
-            _order$type$split2 = _slicedToArray(_order$type$split, 2),
-            prefix = _order$type$split2[0],
-            _orderType = _order$type$split2[1];
+        var parts = order['type'].split(' ');
+        orderType = parts[1];
       }
 
       var timestamp = parseInt(parseFloat(order['timestamp']) * 1000);
@@ -804,7 +784,7 @@ function (_Exchange) {
         'symbol': symbol,
         'type': orderType,
         'side': side,
-        'price': parseFloat(order['price']),
+        'price': this.safeFloat(order, 'price'),
         'average': parseFloat(order['avg_execution_price']),
         'amount': parseFloat(order['original_amount']),
         'remaining': parseFloat(order['remaining_amount']),
@@ -887,14 +867,14 @@ function (_Exchange) {
 
               case 6:
                 request = {};
-                if (limit) request['limit'] = limit;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context11.next = 10;
                 return this.privatePostOrdersHist(this.extend(request, params));
 
               case 10:
                 response = _context11.sent;
                 orders = this.parseOrders(response, undefined, since, limit);
-                if (symbol) orders = this.filterBy(orders, 'symbol', symbol);
+                if (typeof symbol !== 'undefined') orders = this.filterBy(orders, 'symbol', symbol);
                 orders = this.filterBy(orders, 'status', 'closed');
                 return _context11.abrupt("return", orders);
 
@@ -991,10 +971,11 @@ function (_Exchange) {
                 v2id = 't' + market['id'];
                 request = {
                   'symbol': v2id,
-                  'timeframe': this.timeframes[timeframe]
+                  'timeframe': this.timeframes[timeframe],
+                  'sort': 1
                 };
-                if (limit) request['limit'] = limit;
-                if (since) request['start'] = since;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
+                if (typeof since !== 'undefined') request['start'] = since;
                 request = this.extend(request, params);
                 _context13.next = 14;
                 return this.v2GetCandlesTradeTimeframeSymbolHist(request);
@@ -1018,31 +999,31 @@ function (_Exchange) {
   }, {
     key: "getCurrencyName",
     value: function getCurrencyName(currency) {
-      if (currency == 'BTC') {
+      if (currency === 'BTC') {
         return 'bitcoin';
-      } else if (currency == 'LTC') {
+      } else if (currency === 'LTC') {
         return 'litecoin';
-      } else if (currency == 'ETH') {
+      } else if (currency === 'ETH') {
         return 'ethereum';
-      } else if (currency == 'ETC') {
+      } else if (currency === 'ETC') {
         return 'ethereumc';
-      } else if (currency == 'OMNI') {
+      } else if (currency === 'OMNI') {
         return 'mastercoin'; // ???
-      } else if (currency == 'ZEC') {
+      } else if (currency === 'ZEC') {
         return 'zcash';
-      } else if (currency == 'XMR') {
+      } else if (currency === 'XMR') {
         return 'monero';
-      } else if (currency == 'USD') {
+      } else if (currency === 'USD') {
         return 'wire';
-      } else if (currency == 'DASH') {
+      } else if (currency === 'DASH') {
         return 'dash';
-      } else if (currency == 'XRP') {
+      } else if (currency === 'XRP') {
         return 'ripple';
-      } else if (currency == 'EOS') {
+      } else if (currency === 'EOS') {
         return 'eos';
-      } else if (currency == 'BCH') {
+      } else if (currency === 'BCH') {
         return 'bcash';
-      } else if (currency == 'USDT') {
+      } else if (currency === 'USDT') {
         return 'tetheruso';
       }
 
@@ -1098,6 +1079,8 @@ function (_Exchange) {
             name,
             request,
             response,
+            address,
+            tag,
             _args15 = arguments;
         return _regeneratorRuntime.wrap(function _callee15$(_context15) {
           while (1) {
@@ -1116,14 +1099,23 @@ function (_Exchange) {
 
               case 5:
                 response = _context15.sent;
+                address = response['address'];
+                tag = undefined;
+
+                if ('address_pool' in response) {
+                  tag = address;
+                  address = response['address_pool'];
+                }
+
                 return _context15.abrupt("return", {
                   'currency': currency,
-                  'address': response['address'],
+                  'address': address,
+                  'tag': tag,
                   'status': 'ok',
                   'info': response
                 });
 
-              case 7:
+              case 10:
               case "end":
                 return _context15.stop();
             }
@@ -1138,10 +1130,11 @@ function (_Exchange) {
   }, {
     key: "withdraw",
     value: function () {
-      var _withdraw = _asyncToGenerator(
+      var _withdraw2 = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee16(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             name,
             request,
             responses,
@@ -1151,7 +1144,8 @@ function (_Exchange) {
           while (1) {
             switch (_context16.prev = _context16.next) {
               case 0:
-                params = _args16.length > 3 && _args16[3] !== undefined ? _args16[3] : {};
+                tag = _args16.length > 3 && _args16[3] !== undefined ? _args16[3] : undefined;
+                params = _args16.length > 4 && _args16[4] !== undefined ? _args16[4] : {};
                 name = this.getCurrencyName(currency);
                 request = {
                   'withdraw_type': name,
@@ -1159,10 +1153,11 @@ function (_Exchange) {
                   'amount': amount.toString(),
                   'address': address
                 };
-                _context16.next = 5;
+                if (tag) request['payment_id'] = tag;
+                _context16.next = 7;
                 return this.privatePostWithdraw(this.extend(request, params));
 
-              case 5:
+              case 7:
                 responses = _context16.sent;
                 response = responses[0];
                 return _context16.abrupt("return", {
@@ -1170,7 +1165,7 @@ function (_Exchange) {
                   'id': response['withdrawal_id']
                 });
 
-              case 8:
+              case 10:
               case "end":
                 return _context16.stop();
             }
@@ -1179,7 +1174,7 @@ function (_Exchange) {
       }));
 
       return function withdraw(_x13, _x14, _x15) {
-        return _withdraw.apply(this, arguments);
+        return _withdraw2.apply(this, arguments);
       };
     }()
   }, {
@@ -1197,7 +1192,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var request = '/' + this.implodeParams(path, params);
 
-      if (api == 'v2') {
+      if (api === 'v2') {
         request = '/' + api + request;
       } else {
         request = '/' + this.version + request;
@@ -1206,7 +1201,7 @@ function (_Exchange) {
       var query = this.omit(params, this.extractParams(path));
       var url = this.urls['api'] + request;
 
-      if (api == 'public' || path.indexOf('/hist') >= 0) {
+      if (api === 'public' || path.indexOf('/hist') >= 0) {
         if (_Object$keys(query).length) {
           var suffix = '?' + this.urlencode(query);
           url += suffix;
@@ -1214,7 +1209,7 @@ function (_Exchange) {
         }
       }
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         query = this.extend({
@@ -1243,23 +1238,41 @@ function (_Exchange) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code == 400) {
-        if (body[0] == "{") {
-          var response = JSON.parse(body);
-          var message = response['message'];
+      if (body.length < 2) return;
 
-          if (message.indexOf('Key price should be a decimal number') >= 0) {
-            throw new InvalidOrder(this.id + ' ' + message);
-          } else if (message.indexOf('Invalid order: not enough exchange balance') >= 0) {
-            throw new InsufficientFunds(this.id + ' ' + message);
-          } else if (message.indexOf('Invalid order') >= 0) {
-            throw new InvalidOrder(this.id + ' ' + message);
-          } else if (message.indexOf('Order could not be cancelled.') >= 0) {
-            throw new OrderNotFound(this.id + ' ' + message);
+      if (code >= 400) {
+        if (body[0] === '{') {
+          var response = JSON.parse(body);
+
+          if ('message' in response) {
+            var message = response['message'];
+            var error = this.id + ' ' + message;
+
+            if (message.indexOf('Key price should be a decimal number') >= 0) {
+              throw new InvalidOrder(error);
+            } else if (message.indexOf('Invalid order: not enough exchange balance') >= 0) {
+              throw new InsufficientFunds(error);
+            } else if (message === 'Order could not be cancelled.') {
+              throw new OrderNotFound(error);
+            } else if (message.indexOf('Invalid order') >= 0) {
+              throw new InvalidOrder(error);
+            } else if (message === 'Order price must be positive.') {
+              throw new InvalidOrder(error);
+            } else if (message.indexOf('Key amount should be a decimal number') >= 0) {
+              throw new InvalidOrder(error);
+            } else if (message === 'No such order found.') {
+              throw new OrderNotFound(error);
+            } else if (message === 'Could not find a key matching the given X-BFX-APIKEY.') {
+              throw new AuthenticationError(error);
+            }
+          } else if ('error' in response) {
+            var _code = response['error'];
+
+            var _error = this.id + ' ' + _code;
+
+            if (_code === 'ERR_RATE_LIMIT') throw new DDoSProtection(_error);
           }
         }
-
-        throw new ExchangeError(this.id + ' ' + body);
       }
     }
   }, {

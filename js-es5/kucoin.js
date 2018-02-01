@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -23,6 +23,7 @@ var Exchange = require('./base/Exchange');
 var _require = require('./base/errors'),
     ExchangeError = _require.ExchangeError,
     InvalidNonce = _require.InvalidNonce,
+    InvalidOrder = _require.InvalidOrder,
     AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
 
 
@@ -47,26 +48,15 @@ function (_Exchange) {
         // Hong Kong
         'version': 'v1',
         'rateLimit': 2000,
-        'hasCORS': false,
         'userAgent': this.userAgents['chrome'],
-        // obsolete metainfo interface
-        'hasFetchTickers': true,
-        'hasFetchOHLCV': false,
-        // see the method implementation below
-        'hasFetchOrder': true,
-        'hasFetchOrders': true,
-        'hasFetchClosedOrders': true,
-        'hasFetchOpenOrders': true,
-        'hasFetchMyTrades': false,
-        'hasFetchCurrencies': true,
-        'hasWithdraw': true,
-        // new metainfo interface
         'has': {
+          'CORS': false,
+          'createMarketOrder': false,
           'fetchTickers': true,
           'fetchOHLCV': true,
           // see the method implementation below
           'fetchOrder': true,
-          'fetchOrders': true,
+          'fetchOrders': false,
           'fetchClosedOrders': true,
           'fetchOpenOrders': true,
           'fetchMyTrades': false,
@@ -74,28 +64,35 @@ function (_Exchange) {
           'withdraw': true
         },
         'timeframes': {
-          '1m': '1',
-          '5m': '5',
-          '15m': '15',
-          '30m': '30',
-          '1h': '60',
-          '8h': '480',
+          '1m': 1,
+          '5m': 5,
+          '15m': 15,
+          '30m': 30,
+          '1h': 60,
+          '8h': 480,
           '1d': 'D',
           '1w': 'W'
         },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/33795655-b3c46e48-dcf6-11e7-8abe-dc4588ba7901.jpg',
-          'api': 'https://api.kucoin.com',
+          'api': {
+            'public': 'https://api.kucoin.com',
+            'private': 'https://api.kucoin.com',
+            'kitchen': 'https://kitchen.kucoin.com'
+          },
           'www': 'https://kucoin.com',
           'doc': 'https://kucoinapidocs.docs.apiary.io',
           'fees': 'https://news.kucoin.com/en/fee'
         },
         'api': {
+          'kitchen': {
+            'get': ['open/chart/history']
+          },
           'public': {
             'get': ['open/chart/config', 'open/chart/history', 'open/chart/symbol', 'open/currencies', 'open/deal-orders', 'open/kline', 'open/lang-list', 'open/orders', 'open/orders-buy', 'open/orders-sell', 'open/tick', 'market/open/coin-info', 'market/open/coins', 'market/open/coins-trending', 'market/open/symbols']
           },
           'private': {
-            'get': ['account/balance', 'account/{coin}/wallet/address', 'account/{coin}/wallet/records', 'account/{coin}/balance', 'account/promotion/info', 'account/promotion/sum', 'deal-orders', 'order/active', 'order/active-map', 'order/dealt', 'referrer/descendant/count', 'user/info'],
+            'get': ['account/balance', 'account/{coin}/wallet/address', 'account/{coin}/wallet/records', 'account/{coin}/balance', 'account/promotion/info', 'account/promotion/sum', 'deal-orders', 'order/active', 'order/active-map', 'order/dealt', 'order/detail', 'referrer/descendant/count', 'user/info'],
             'post': ['account/{coin}/withdraw/apply', 'account/{coin}/withdraw/cancel', 'cancel-order', 'order', 'user/change-lang']
           }
         },
@@ -103,6 +100,62 @@ function (_Exchange) {
           'trading': {
             'maker': 0.0010,
             'taker': 0.0010
+          },
+          'funding': {
+            'tierBased': false,
+            'percentage': false,
+            'withdraw': {
+              'KCS': 2.0,
+              'BTC': 0.0005,
+              'USDT': 10.0,
+              'ETH': 0.01,
+              'LTC': 0.001,
+              'NEO': 0.0,
+              'GAS': 0.0,
+              'KNC': 0.5,
+              'BTM': 5.0,
+              'QTUM': 0.1,
+              'EOS': 0.5,
+              'CVC': 3.0,
+              'OMG': 0.1,
+              'PAY': 0.5,
+              'SNT': 20.0,
+              'BHC': 1.0,
+              'HSR': 0.01,
+              'WTC': 0.1,
+              'VEN': 2.0,
+              'MTH': 10.0,
+              'RPX': 1.0,
+              'REQ': 20.0,
+              'EVX': 0.5,
+              'MOD': 0.5,
+              'NEBL': 0.1,
+              'DGB': 0.5,
+              'CAG': 2.0,
+              'CFD': 0.5,
+              'RDN': 0.5,
+              'UKG': 5.0,
+              'BCPT': 5.0,
+              'PPT': 0.1,
+              'BCH': 0.0005,
+              'STX': 2.0,
+              'NULS': 1.0,
+              'GVT': 0.1,
+              'HST': 2.0,
+              'PURA': 0.5,
+              'SUB': 2.0,
+              'QSP': 5.0,
+              'POWR': 1.0,
+              'FLIXX': 10.0,
+              'LEND': 20.0,
+              'AMB': 3.0,
+              'RHOC': 2.0,
+              'R': 2.0,
+              'DENT': 50.0,
+              'DRGN': 1.0,
+              'ACT': 0.1
+            },
+            'deposit': 0.00
           }
         }
       });
@@ -280,9 +333,9 @@ function (_Exchange) {
             currency,
             account,
             balance,
-            total,
             used,
             free,
+            total,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
@@ -314,9 +367,9 @@ function (_Exchange) {
                   currency = this.commonCurrencyCode(id);
                   account = this.account();
                   balance = indexed[id];
-                  total = parseFloat(balance['balance']);
                   used = parseFloat(balance['freezeBalance']);
-                  free = total - used;
+                  free = parseFloat(balance['balance']);
+                  total = this.sum(free, used);
                   account['free'] = free;
                   account['used'] = used;
                   account['total'] = total;
@@ -392,15 +445,57 @@ function (_Exchange) {
         symbol = order['coinType'] + '/' + order['coinTypePair'];
       }
 
-      var timestamp = order['createdAt'];
-      var price = this.safeFloat(order, 'price');
-      var amount = this.safeFloat(order, 'amount');
-      var filled = this.safeFloat(order, 'dealAmount');
+      var timestamp = this.safeValue(order, 'createdAt');
+      var price = this.safeValue(order, 'price');
+      if (typeof price === 'undefined') price = this.safeValue(order, 'dealPrice');
+      if (typeof price === 'undefined') price = this.safeValue(order, 'dealPriceAverage');
       var remaining = this.safeFloat(order, 'pendingAmount');
-      var side = order['type'].toLowerCase();
+      var status = this.safeValue(order, 'status');
+      var filled = this.safeFloat(order, 'dealAmount');
+
+      if (typeof status === 'undefined') {
+        if (typeof remaining !== 'undefined') if (remaining > 0) status = 'open';else status = 'closed';
+      }
+
+      if (typeof status !== 'undefined') {
+        if (status === 'closed') filled = this.safeFloat(order, 'amount');
+      }
+
+      var amount = this.safeFloat(order, 'amount');
+      var cost = this.safeFloat(order, 'dealValue');
+
+      if (typeof filled !== 'undefined') {
+        if (typeof price !== 'undefined') {
+          if (typeof cost === 'undefined') cost = price * filled;
+        }
+
+        if (typeof amount === 'undefined') {
+          if (typeof remaining !== 'undefined') amount = this.sum(filled, remaining);
+        } else if (typeof remaining === 'undefined') {
+          remaining = amount - filled;
+        }
+      }
+
+      var side = this.safeValue(order, 'direction');
+      if (typeof side === 'undefined') side = order['type'].toLowerCase();
+      var fee = undefined;
+
+      if ('feeTotal' in order) {
+        fee = {
+          'cost': this.safeValue(order, 'feeTotal'),
+          'rate': undefined,
+          'currency': undefined
+        };
+        if (market) fee['currency'] = market['base'];
+      } // todo: parse order trades and fill fees from 'datas'
+      // do not confuse trades with orders
+
+
+      var orderId = this.safeString(order, 'orderOid');
+      if (typeof orderId === 'undefined') orderId = this.safeString(order, 'oid');
       var result = {
         'info': order,
-        'id': this.safeString(order, 'oid'),
+        'id': orderId,
         'timestamp': timestamp,
         'datetime': this.iso8601(timestamp),
         'symbol': symbol,
@@ -408,20 +503,87 @@ function (_Exchange) {
         'side': side,
         'price': price,
         'amount': amount,
-        'cost': price * filled,
+        'cost': cost,
         'filled': filled,
         'remaining': remaining,
-        'status': undefined,
-        'fee': this.safeFloat(order, 'fee')
+        'status': status,
+        'fee': fee
       };
       return result;
     }
+  }, {
+    key: "fetchOrder",
+    value: function () {
+      var _fetchOrder = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee5(id) {
+        var symbol,
+            params,
+            orderType,
+            market,
+            request,
+            response,
+            _args5 = arguments;
+        return _regeneratorRuntime.wrap(function _callee5$(_context5) {
+          while (1) {
+            switch (_context5.prev = _context5.next) {
+              case 0:
+                symbol = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
+                params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
+
+                if (!(typeof symbol === 'undefined')) {
+                  _context5.next = 4;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' fetchOrder requires a symbol argument');
+
+              case 4:
+                orderType = this.safeValue(params, 'type');
+
+                if (!(typeof orderType === 'undefined')) {
+                  _context5.next = 7;
+                  break;
+                }
+
+                throw new ExchangeError(this.id + ' fetchOrder requires a type param');
+
+              case 7:
+                _context5.next = 9;
+                return this.loadMarkets();
+
+              case 9:
+                market = this.market(symbol);
+                request = {
+                  'symbol': market['id'],
+                  'type': orderType,
+                  'orderOid': id
+                };
+                _context5.next = 13;
+                return this.privateGetOrderDetail(this.extend(request, params));
+
+              case 13:
+                response = _context5.sent;
+                return _context5.abrupt("return", this.parseOrder(response['data'], market));
+
+              case 15:
+              case "end":
+                return _context5.stop();
+            }
+          }
+        }, _callee5, this);
+      }));
+
+      return function fetchOrder(_x2) {
+        return _fetchOrder.apply(this, arguments);
+      };
+    }()
   }, {
     key: "fetchOpenOrders",
     value: function () {
       var _fetchOpenOrders = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee5() {
+      _regeneratorRuntime.mark(function _callee6() {
         var symbol,
             since,
             limit,
@@ -430,25 +592,27 @@ function (_Exchange) {
             request,
             response,
             orders,
-            _args5 = arguments;
-        return _regeneratorRuntime.wrap(function _callee5$(_context5) {
+            result,
+            i,
+            _args6 = arguments;
+        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
           while (1) {
-            switch (_context5.prev = _context5.next) {
+            switch (_context6.prev = _context6.next) {
               case 0:
-                symbol = _args5.length > 0 && _args5[0] !== undefined ? _args5[0] : undefined;
-                since = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
-                limit = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : undefined;
-                params = _args5.length > 3 && _args5[3] !== undefined ? _args5[3] : {};
+                symbol = _args6.length > 0 && _args6[0] !== undefined ? _args6[0] : undefined;
+                since = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : undefined;
+                limit = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : undefined;
+                params = _args6.length > 3 && _args6[3] !== undefined ? _args6[3] : {};
 
                 if (symbol) {
-                  _context5.next = 6;
+                  _context6.next = 6;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' fetchOpenOrders requires a symbol param');
 
               case 6:
-                _context5.next = 8;
+                _context6.next = 8;
                 return this.loadMarkets();
 
               case 8:
@@ -456,20 +620,28 @@ function (_Exchange) {
                 request = {
                   'symbol': market['id']
                 };
-                _context5.next = 12;
+                _context6.next = 12;
                 return this.privateGetOrderActiveMap(this.extend(request, params));
 
               case 12:
-                response = _context5.sent;
+                response = _context6.sent;
                 orders = this.arrayConcat(response['data']['SELL'], response['data']['BUY']);
-                return _context5.abrupt("return", this.parseOrders(orders, market, since, limit));
+                result = [];
 
-              case 15:
+                for (i = 0; i < orders.length; i++) {
+                  result.push(this.extend(orders[i], {
+                    'status': 'open'
+                  }));
+                }
+
+                return _context6.abrupt("return", this.parseOrders(result, market, since, limit));
+
+              case 17:
               case "end":
-                return _context5.stop();
+                return _context6.stop();
             }
           }
-        }, _callee5, this);
+        }, _callee6, this);
       }));
 
       return function fetchOpenOrders() {
@@ -481,7 +653,7 @@ function (_Exchange) {
     value: function () {
       var _fetchClosedOrders = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee6() {
+      _regeneratorRuntime.mark(function _callee7() {
         var symbol,
             since,
             limit,
@@ -489,47 +661,54 @@ function (_Exchange) {
             request,
             market,
             response,
-            _args6 = arguments;
-        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
+            orders,
+            result,
+            i,
+            _args7 = arguments;
+        return _regeneratorRuntime.wrap(function _callee7$(_context7) {
           while (1) {
-            switch (_context6.prev = _context6.next) {
+            switch (_context7.prev = _context7.next) {
               case 0:
-                symbol = _args6.length > 0 && _args6[0] !== undefined ? _args6[0] : undefined;
-                since = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : undefined;
-                limit = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : undefined;
-                params = _args6.length > 3 && _args6[3] !== undefined ? _args6[3] : {};
+                symbol = _args7.length > 0 && _args7[0] !== undefined ? _args7[0] : undefined;
+                since = _args7.length > 1 && _args7[1] !== undefined ? _args7[1] : undefined;
+                limit = _args7.length > 2 && _args7[2] !== undefined ? _args7[2] : undefined;
+                params = _args7.length > 3 && _args7[3] !== undefined ? _args7[3] : {};
                 request = {};
-                _context6.next = 7;
+                _context7.next = 7;
                 return this.loadMarkets();
 
               case 7:
-                market = this.market(symbol);
+                market = undefined;
 
-                if (symbol) {
+                if (typeof symbol !== 'undefined') {
+                  market = this.market(symbol);
                   request['symbol'] = market['id'];
                 }
 
-                if (since) {
-                  request['since'] = since;
-                }
-
-                if (limit) {
-                  request['limit'] = limit;
-                }
-
-                _context6.next = 13;
+                if (typeof since !== 'undefined') request['since'] = since;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
+                _context7.next = 13;
                 return this.privateGetOrderDealt(this.extend(request, params));
 
               case 13:
-                response = _context6.sent;
-                return _context6.abrupt("return", this.parseOrders(response['data']['datas'], market, since, limit));
+                response = _context7.sent;
+                orders = response['data']['datas'];
+                result = [];
 
-              case 15:
+                for (i = 0; i < orders.length; i++) {
+                  result.push(this.extend(orders[i], {
+                    'status': 'closed'
+                  }));
+                }
+
+                return _context7.abrupt("return", this.parseOrders(result, market, since, limit));
+
+              case 18:
               case "end":
-                return _context6.stop();
+                return _context7.stop();
             }
           }
-        }, _callee6, this);
+        }, _callee7, this);
       }));
 
       return function fetchClosedOrders() {
@@ -541,58 +720,60 @@ function (_Exchange) {
     value: function () {
       var _createOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee7(symbol, type, side, amount) {
+      _regeneratorRuntime.mark(function _callee8(symbol, type, side, amount) {
         var price,
             params,
             market,
+            base,
             order,
             response,
-            _args7 = arguments;
-        return _regeneratorRuntime.wrap(function _callee7$(_context7) {
+            _args8 = arguments;
+        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
           while (1) {
-            switch (_context7.prev = _context7.next) {
+            switch (_context8.prev = _context8.next) {
               case 0:
-                price = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : undefined;
-                params = _args7.length > 5 && _args7[5] !== undefined ? _args7[5] : {};
+                price = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : undefined;
+                params = _args8.length > 5 && _args8[5] !== undefined ? _args8[5] : {};
 
-                if (!(type != 'limit')) {
-                  _context7.next = 4;
+                if (!(type !== 'limit')) {
+                  _context8.next = 4;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' allows limit orders only');
 
               case 4:
-                _context7.next = 6;
+                _context8.next = 6;
                 return this.loadMarkets();
 
               case 6:
                 market = this.market(symbol);
+                base = market['base'];
                 order = {
                   'symbol': market['id'],
                   'type': side.toUpperCase(),
                   'price': this.priceToPrecision(symbol, price),
-                  'amount': this.amountToPrecision(symbol, amount)
+                  'amount': this.truncate(amount, this.currencies[base]['precision'])
                 };
-                _context7.next = 10;
+                _context8.next = 11;
                 return this.privatePostOrder(this.extend(order, params));
 
-              case 10:
-                response = _context7.sent;
-                return _context7.abrupt("return", {
+              case 11:
+                response = _context8.sent;
+                return _context8.abrupt("return", {
                   'info': response,
                   'id': this.safeString(response['data'], 'orderOid')
                 });
 
-              case 12:
+              case 13:
               case "end":
-                return _context7.stop();
+                return _context8.stop();
             }
           }
-        }, _callee7, this);
+        }, _callee8, this);
       }));
 
-      return function createOrder(_x2, _x3, _x4, _x5) {
+      return function createOrder(_x3, _x4, _x5, _x6) {
         return _createOrder.apply(this, arguments);
       };
     }()
@@ -601,29 +782,29 @@ function (_Exchange) {
     value: function () {
       var _cancelOrder = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee8(id) {
+      _regeneratorRuntime.mark(function _callee9(id) {
         var symbol,
             params,
             market,
             request,
             response,
-            _args8 = arguments;
-        return _regeneratorRuntime.wrap(function _callee8$(_context8) {
+            _args9 = arguments;
+        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
-            switch (_context8.prev = _context8.next) {
+            switch (_context9.prev = _context9.next) {
               case 0:
-                symbol = _args8.length > 1 && _args8[1] !== undefined ? _args8[1] : undefined;
-                params = _args8.length > 2 && _args8[2] !== undefined ? _args8[2] : {};
+                symbol = _args9.length > 1 && _args9[1] !== undefined ? _args9[1] : undefined;
+                params = _args9.length > 2 && _args9[2] !== undefined ? _args9[2] : {};
 
                 if (symbol) {
-                  _context8.next = 4;
+                  _context9.next = 4;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' cancelOrder requires symbol argument');
 
               case 4:
-                _context8.next = 6;
+                _context9.next = 6;
                 return this.loadMarkets();
 
               case 6:
@@ -634,34 +815,34 @@ function (_Exchange) {
                 };
 
                 if (!('type' in params)) {
-                  _context8.next = 12;
+                  _context9.next = 12;
                   break;
                 }
 
                 request['type'] = params['type'].toUpperCase();
-                _context8.next = 13;
+                _context9.next = 13;
                 break;
 
               case 12:
                 throw new ExchangeError(this.id + ' cancelOrder requires type (BUY or SELL) param');
 
               case 13:
-                _context8.next = 15;
+                _context9.next = 15;
                 return this.privatePostCancelOrder(this.extend(request, params));
 
               case 15:
-                response = _context8.sent;
-                return _context8.abrupt("return", response);
+                response = _context9.sent;
+                return _context9.abrupt("return", response);
 
               case 17:
               case "end":
-                return _context8.stop();
+                return _context9.stop();
             }
           }
-        }, _callee8, this);
+        }, _callee9, this);
       }));
 
-      return function cancelOrder(_x6) {
+      return function cancelOrder(_x7) {
         return _cancelOrder.apply(this, arguments);
       };
     }()
@@ -676,8 +857,11 @@ function (_Exchange) {
         symbol = market['symbol'];
       } else {
         symbol = ticker['coinType'] + '/' + ticker['coinTypePair'];
-      }
+      } // TNC coin doesn't have changerate for some reason
 
+
+      var change = this.safeFloat(ticker, 'changeRate');
+      if (typeof change !== 'undefined') change *= 100;
       return {
         'symbol': symbol,
         'timestamp': timestamp,
@@ -691,7 +875,7 @@ function (_Exchange) {
         'close': undefined,
         'first': undefined,
         'last': this.safeFloat(ticker, 'lastDealPrice'),
-        'change': undefined,
+        'change': change,
         'percentage': undefined,
         'average': undefined,
         'baseVolume': this.safeFloat(ticker, 'vol'),
@@ -704,7 +888,7 @@ function (_Exchange) {
     value: function () {
       var _fetchTickers = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee9() {
+      _regeneratorRuntime.mark(function _callee10() {
         var symbols,
             params,
             response,
@@ -713,18 +897,18 @@ function (_Exchange) {
             t,
             ticker,
             symbol,
-            _args9 = arguments;
-        return _regeneratorRuntime.wrap(function _callee9$(_context9) {
+            _args10 = arguments;
+        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
           while (1) {
-            switch (_context9.prev = _context9.next) {
+            switch (_context10.prev = _context10.next) {
               case 0:
-                symbols = _args9.length > 0 && _args9[0] !== undefined ? _args9[0] : undefined;
-                params = _args9.length > 1 && _args9[1] !== undefined ? _args9[1] : {};
-                _context9.next = 4;
+                symbols = _args10.length > 0 && _args10[0] !== undefined ? _args10[0] : undefined;
+                params = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : {};
+                _context10.next = 4;
                 return this.publicGetMarketOpenSymbols(params);
 
               case 4:
-                response = _context9.sent;
+                response = _context10.sent;
                 tickers = response['data'];
                 result = {};
 
@@ -734,14 +918,14 @@ function (_Exchange) {
                   result[symbol] = ticker;
                 }
 
-                return _context9.abrupt("return", result);
+                return _context10.abrupt("return", result);
 
               case 9:
               case "end":
-                return _context9.stop();
+                return _context10.stop();
             }
           }
-        }, _callee9, this);
+        }, _callee10, this);
       }));
 
       return function fetchTickers() {
@@ -753,41 +937,41 @@ function (_Exchange) {
     value: function () {
       var _fetchTicker = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee10(symbol) {
+      _regeneratorRuntime.mark(function _callee11(symbol) {
         var params,
             market,
             response,
             ticker,
-            _args10 = arguments;
-        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
+            _args11 = arguments;
+        return _regeneratorRuntime.wrap(function _callee11$(_context11) {
           while (1) {
-            switch (_context10.prev = _context10.next) {
+            switch (_context11.prev = _context11.next) {
               case 0:
-                params = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : {};
-                _context10.next = 3;
+                params = _args11.length > 1 && _args11[1] !== undefined ? _args11[1] : {};
+                _context11.next = 3;
                 return this.loadMarkets();
 
               case 3:
                 market = this.market(symbol);
-                _context10.next = 6;
+                _context11.next = 6;
                 return this.publicGetOpenTick(this.extend({
                   'symbol': market['id']
                 }, params));
 
               case 6:
-                response = _context10.sent;
+                response = _context11.sent;
                 ticker = response['data'];
-                return _context10.abrupt("return", this.parseTicker(ticker, market));
+                return _context11.abrupt("return", this.parseTicker(ticker, market));
 
               case 9:
               case "end":
-                return _context10.stop();
+                return _context11.stop();
             }
           }
-        }, _callee10, this);
+        }, _callee11, this);
       }));
 
-      return function fetchTicker(_x7) {
+      return function fetchTicker(_x8) {
         return _fetchTicker.apply(this, arguments);
       };
     }()
@@ -798,9 +982,9 @@ function (_Exchange) {
       var timestamp = trade[0];
       var side = undefined;
 
-      if (trade[1] == 'BUY') {
+      if (trade[1] === 'BUY') {
         side = 'buy';
-      } else if (trade[1] == 'SELL') {
+      } else if (trade[1] === 'SELL') {
         side = 'sell';
       }
 
@@ -821,109 +1005,35 @@ function (_Exchange) {
     value: function () {
       var _fetchTrades = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee11(symbol) {
+      _regeneratorRuntime.mark(function _callee12(symbol) {
         var since,
             limit,
             params,
             market,
-            response,
-            _args11 = arguments;
-        return _regeneratorRuntime.wrap(function _callee11$(_context11) {
-          while (1) {
-            switch (_context11.prev = _context11.next) {
-              case 0:
-                since = _args11.length > 1 && _args11[1] !== undefined ? _args11[1] : undefined;
-                limit = _args11.length > 2 && _args11[2] !== undefined ? _args11[2] : undefined;
-                params = _args11.length > 3 && _args11[3] !== undefined ? _args11[3] : {};
-                _context11.next = 5;
-                return this.loadMarkets();
-
-              case 5:
-                market = this.market(symbol);
-                _context11.next = 8;
-                return this.publicGetOpenDealOrders(this.extend({
-                  'symbol': market['id']
-                }, params));
-
-              case 8:
-                response = _context11.sent;
-                return _context11.abrupt("return", this.parseTrades(response['data'], market, since, limit));
-
-              case 10:
-              case "end":
-                return _context11.stop();
-            }
-          }
-        }, _callee11, this);
-      }));
-
-      return function fetchTrades(_x8) {
-        return _fetchTrades.apply(this, arguments);
-      };
-    }()
-  }, {
-    key: "parseOHLCV",
-    value: function parseOHLCV(ohlcv) {
-      var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var timeframe = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '1d';
-      var since = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
-      var limit = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
-      var timestamp = this.parse8601(ohlcv['T']);
-      return [timestamp, ohlcv['O'], ohlcv['H'], ohlcv['L'], ohlcv['C'], ohlcv['V']];
-    }
-  }, {
-    key: "fetchOHLCV",
-    value: function () {
-      var _fetchOHLCV = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee12(symbol) {
-        var timeframe,
-            since,
-            limit,
-            params,
-            market,
-            to,
-            request,
             response,
             _args12 = arguments;
         return _regeneratorRuntime.wrap(function _callee12$(_context12) {
           while (1) {
             switch (_context12.prev = _context12.next) {
               case 0:
-                timeframe = _args12.length > 1 && _args12[1] !== undefined ? _args12[1] : '1m';
-                since = _args12.length > 2 && _args12[2] !== undefined ? _args12[2] : undefined;
-                limit = _args12.length > 3 && _args12[3] !== undefined ? _args12[3] : undefined;
-                params = _args12.length > 4 && _args12[4] !== undefined ? _args12[4] : {};
-                _context12.next = 6;
+                since = _args12.length > 1 && _args12[1] !== undefined ? _args12[1] : undefined;
+                limit = _args12.length > 2 && _args12[2] !== undefined ? _args12[2] : undefined;
+                params = _args12.length > 3 && _args12[3] !== undefined ? _args12[3] : {};
+                _context12.next = 5;
                 return this.loadMarkets();
 
-              case 6:
+              case 5:
                 market = this.market(symbol);
-                to = this.seconds();
-                request = {
-                  'symbol': market['id'],
-                  'type': this.timeframes[timeframe],
-                  'from': to - 86400,
-                  'to': to
-                };
+                _context12.next = 8;
+                return this.publicGetOpenDealOrders(this.extend({
+                  'symbol': market['id']
+                }, params));
 
-                if (since) {
-                  request['from'] = parseInt(since / 1000);
-                } // limit is not documented in api call, and not respected
-
-
-                if (limit) {
-                  request['limit'] = limit;
-                }
-
-                _context12.next = 13;
-                return this.publicGetOpenChartHistory(this.extend(request, params));
-
-              case 13:
+              case 8:
                 response = _context12.sent;
-                return _context12.abrupt("return", this.parseOHLCVs(response['data'], market, timeframe, since, limit));
+                return _context12.abrupt("return", this.parseTrades(response['data'], market, since, limit));
 
-              case 15:
+              case 10:
               case "end":
                 return _context12.stop();
             }
@@ -931,8 +1041,154 @@ function (_Exchange) {
         }, _callee12, this);
       }));
 
-      return function fetchOHLCV(_x9) {
+      return function fetchTrades(_x9) {
+        return _fetchTrades.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "parseTradingViewOHLCVs",
+    value: function parseTradingViewOHLCVs(ohlcvs) {
+      var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
+      var timeframe = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '1m';
+      var since = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
+      var limit = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
+      var result = [];
+
+      for (var i = 0; i < ohlcvs['t'].length; i++) {
+        result.push([ohlcvs['t'][i] * 1000, ohlcvs['o'][i], ohlcvs['h'][i], ohlcvs['l'][i], ohlcvs['c'][i], ohlcvs['v'][i]]);
+      }
+
+      return this.parseOHLCVs(result, market, timeframe, since, limit);
+    }
+  }, {
+    key: "fetchOHLCV",
+    value: function () {
+      var _fetchOHLCV = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee13(symbol) {
+        var timeframe,
+            since,
+            limit,
+            params,
+            market,
+            end,
+            resolution,
+            minutes,
+            start,
+            request,
+            response,
+            _args13 = arguments;
+        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
+          while (1) {
+            switch (_context13.prev = _context13.next) {
+              case 0:
+                timeframe = _args13.length > 1 && _args13[1] !== undefined ? _args13[1] : '1m';
+                since = _args13.length > 2 && _args13[2] !== undefined ? _args13[2] : undefined;
+                limit = _args13.length > 3 && _args13[3] !== undefined ? _args13[3] : undefined;
+                params = _args13.length > 4 && _args13[4] !== undefined ? _args13[4] : {};
+                _context13.next = 6;
+                return this.loadMarkets();
+
+              case 6:
+                market = this.market(symbol);
+                end = this.seconds();
+                resolution = this.timeframes[timeframe]; // convert 'resolution' to minutes in order to calculate 'from' later
+
+                minutes = resolution;
+
+                if (minutes === 'D') {
+                  if (typeof limit === 'undefined') limit = 30; // 30 days, 1 month
+
+                  minutes = 1440;
+                } else if (minutes === 'W') {
+                  if (typeof limit === 'undefined') limit = 52; // 52 weeks, 1 year
+
+                  minutes = 10080;
+                } else if (typeof limit === 'undefined') {
+                  limit = 1440;
+                  minutes = 1440;
+                  resolution = 'D';
+                }
+
+                start = end - minutes * 60 * limit;
+
+                if (typeof since !== 'undefined') {
+                  start = parseInt(since / 1000);
+                  end = this.sum(start, minutes * 60 * limit);
+                }
+
+                request = {
+                  'symbol': market['id'],
+                  'type': this.timeframes[timeframe],
+                  'resolution': resolution,
+                  'from': start,
+                  'to': end
+                };
+                _context13.next = 16;
+                return this.kitchenGetOpenChartHistory(this.extend(request, params));
+
+              case 16:
+                response = _context13.sent;
+                return _context13.abrupt("return", this.parseTradingViewOHLCVs(response, market, timeframe, since, limit));
+
+              case 18:
+              case "end":
+                return _context13.stop();
+            }
+          }
+        }, _callee13, this);
+      }));
+
+      return function fetchOHLCV(_x10) {
         return _fetchOHLCV.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "withdraw",
+    value: function () {
+      var _withdraw = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee14(code, amount, address) {
+        var tag,
+            params,
+            currency,
+            response,
+            _args14 = arguments;
+        return _regeneratorRuntime.wrap(function _callee14$(_context14) {
+          while (1) {
+            switch (_context14.prev = _context14.next) {
+              case 0:
+                tag = _args14.length > 3 && _args14[3] !== undefined ? _args14[3] : undefined;
+                params = _args14.length > 4 && _args14[4] !== undefined ? _args14[4] : {};
+                _context14.next = 4;
+                return this.loadMarkets();
+
+              case 4:
+                currency = this.currency(code);
+                _context14.next = 7;
+                return this.privatePostAccountCoinWithdrawApply(this.extend({
+                  'coin': currency['id'],
+                  'amount': amount,
+                  'address': address
+                }, params));
+
+              case 7:
+                response = _context14.sent;
+                return _context14.abrupt("return", {
+                  'info': response,
+                  'id': undefined
+                });
+
+              case 9:
+              case "end":
+                return _context14.stop();
+            }
+          }
+        }, _callee14, this);
+      }));
+
+      return function withdraw(_x11, _x12, _x13) {
+        return _withdraw.apply(this, arguments);
       };
     }()
   }, {
@@ -944,10 +1200,10 @@ function (_Exchange) {
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var endpoint = '/' + this.version + '/' + this.implodeParams(path, params);
-      var url = this.urls['api'] + endpoint;
+      var url = this.urls['api'][api] + endpoint;
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials(); // their nonce is always a calibrated synched milliseconds-timestamp
@@ -958,10 +1214,9 @@ function (_Exchange) {
 
         if (_Object$keys(query).length) {
           queryString = this.rawencode(this.keysort(query));
+          url += '?' + queryString;
 
-          if (method == 'GET') {
-            url += '?' + queryString;
-          } else {
+          if (method !== 'GET') {
             body = queryString;
           }
         }
@@ -985,32 +1240,30 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "handleErrors",
-    value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code >= 400) {
-        if (body && body[0] == "{") {
-          var response = JSON.parse(body);
+    key: "throwExceptionOnError",
+    value: function throwExceptionOnError(response) {
+      if ('success' in response) {
+        if (!response['success']) {
+          if ('code' in response) {
+            var message = this.safeString(response, 'msg');
 
-          if ('success' in response) {
-            if (!response['success']) {
-              if ('code' in response) {
-                if (response['code'] == 'UNAUTH') {
-                  var message = this.safeString(response, 'msg');
-
-                  if (message == 'Invalid nonce') {
-                    throw new InvalidNonce(this.id + ' ' + message);
-                  }
-
-                  throw new AuthenticationError(this.id + ' ' + this.json(response));
-                }
-              }
-
-              throw new ExchangeError(this.id + ' ' + this.json(response));
+            if (response['code'] === 'UNAUTH') {
+              if (message === 'Invalid nonce') throw new InvalidNonce(this.id + ' ' + message);
+              throw new AuthenticationError(this.id + ' ' + this.json(response));
+            } else if (response['code'] === 'ERROR') {
+              if (message.indexOf('precision of amount') >= 0) throw new InvalidOrder(this.id + ' ' + message);
+              if (message.indexOf('Min amount each order') >= 0) throw new InvalidOrder(this.id + ' ' + message);
             }
           }
-        } else {
-          throw new ExchangeError(this.id + ' ' + code.toString() + ' ' + reason);
         }
+      }
+    }
+  }, {
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      if (body && body[0] === '{') {
+        var response = JSON.parse(body);
+        this.throwExceptionOnError(response);
       }
     }
   }, {
@@ -1018,39 +1271,40 @@ function (_Exchange) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee13(path) {
+      _regeneratorRuntime.mark(function _callee15(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args13 = arguments;
-        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
+            _args15 = arguments;
+        return _regeneratorRuntime.wrap(function _callee15$(_context15) {
           while (1) {
-            switch (_context13.prev = _context13.next) {
+            switch (_context15.prev = _context15.next) {
               case 0:
-                api = _args13.length > 1 && _args13[1] !== undefined ? _args13[1] : 'public';
-                method = _args13.length > 2 && _args13[2] !== undefined ? _args13[2] : 'GET';
-                params = _args13.length > 3 && _args13[3] !== undefined ? _args13[3] : {};
-                headers = _args13.length > 4 && _args13[4] !== undefined ? _args13[4] : undefined;
-                body = _args13.length > 5 && _args13[5] !== undefined ? _args13[5] : undefined;
-                _context13.next = 7;
+                api = _args15.length > 1 && _args15[1] !== undefined ? _args15[1] : 'public';
+                method = _args15.length > 2 && _args15[2] !== undefined ? _args15[2] : 'GET';
+                params = _args15.length > 3 && _args15[3] !== undefined ? _args15[3] : {};
+                headers = _args15.length > 4 && _args15[4] !== undefined ? _args15[4] : undefined;
+                body = _args15.length > 5 && _args15[5] !== undefined ? _args15[5] : undefined;
+                _context15.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context13.sent;
-                return _context13.abrupt("return", response);
+                response = _context15.sent;
+                this.throwExceptionOnError(response);
+                return _context15.abrupt("return", response);
 
-              case 9:
+              case 10:
               case "end":
-                return _context13.stop();
+                return _context15.stop();
             }
           }
-        }, _callee13, this);
+        }, _callee15, this);
       }));
 
-      return function request(_x10) {
+      return function request(_x14) {
         return _request.apply(this, arguments);
       };
     }()

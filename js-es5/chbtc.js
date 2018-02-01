@@ -19,8 +19,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var zb = require('./zb.js');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
-    ExchangeNotAvailable = _require.ExchangeNotAvailable; // ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError; // ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -43,8 +42,10 @@ function (_zb) {
         'countries': 'CN',
         'rateLimit': 1000,
         'version': 'v1',
-        'hasCORS': false,
-        'hasFetchOrder': true,
+        'has': {
+          'CORS': false,
+          'fetchOrder': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28555659-f0040dc2-7109-11e7-9d99-688a438bf9f4.jpg',
           'api': {

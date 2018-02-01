@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$getPrototypeOf = require("@babel/runtime/core-js/object/get-prototype-of");
 
@@ -33,7 +33,9 @@ function (_foxbit) {
         'id': 'urdubit',
         'name': 'UrduBit',
         'countries': 'PK',
-        'hasCORS': false,
+        'has': {
+          'CORS': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27991453-156bf3ae-6480-11e7-82eb-7295fe1b5bb4.jpg',
           'api': {

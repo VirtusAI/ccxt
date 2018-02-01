@@ -39,7 +39,9 @@ function (_Exchange) {
         'countries': 'CH',
         'rateLimit': 1000,
         'version': '1',
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766880-f205e870-5ee9-11e7-8fe2-0d5b15880752.jpg',
           'api': 'https://api.vaultoro.com',

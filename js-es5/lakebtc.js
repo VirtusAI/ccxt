@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -43,7 +43,10 @@ function (_Exchange) {
         'name': 'LakeBTC',
         'countries': 'US',
         'version': 'api_v2',
-        'hasCORS': true,
+        'has': {
+          'CORS': true,
+          'createMarketOrder': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/28074120-72b7c38a-6660-11e7-92d9-d9027502281d.jpg',
           'api': 'https://api.lakebtc.com',
@@ -72,7 +75,7 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, result, keys, k, id, market, base, quote, symbol;
+        var markets, result, keys, k, id, market, baseId, quoteId, base, quote, symbol;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -88,16 +91,18 @@ function (_Exchange) {
                 for (k = 0; k < keys.length; k++) {
                   id = keys[k];
                   market = markets[id];
-                  base = id.slice(0, 3);
-                  quote = id.slice(3, 6);
-                  base = base.toUpperCase();
-                  quote = quote.toUpperCase();
+                  baseId = id.slice(0, 3);
+                  quoteId = id.slice(3, 6);
+                  base = baseId.toUpperCase();
+                  quote = quoteId.toUpperCase();
                   symbol = base + '/' + quote;
                   result.push({
                     'id': id,
                     'symbol': symbol,
                     'base': base,
                     'quote': quote,
+                    'baseId': baseId,
+                    'quoteId': quoteId,
                     'info': market
                   });
                 }
@@ -126,9 +131,11 @@ function (_Exchange) {
             response,
             balances,
             result,
-            currencies,
-            c,
+            ids,
+            i,
+            id,
             currency,
+            code,
             balance,
             account,
             _args2 = arguments;
@@ -150,17 +157,19 @@ function (_Exchange) {
                 result = {
                   'info': response
                 };
-                currencies = _Object$keys(balances);
+                ids = _Object$keys(balances);
 
-                for (c = 0; c < currencies.length; c++) {
-                  currency = currencies[c];
-                  balance = parseFloat(balances[currency]);
+                for (i = 0; i < ids.length; i++) {
+                  id = ids[i];
+                  currency = this.currencies[id];
+                  code = currency['code'];
+                  balance = parseFloat(balances[id]);
                   account = {
                     'free': balance,
                     'used': 0.0,
                     'total': balance
                   };
-                  result[currency] = account;
+                  result[code] = account;
                 }
 
                 return _context2.abrupt("return", this.parseBalance(result));
@@ -365,7 +374,7 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context6.next = 6;
                   break;
                 }
@@ -454,7 +463,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version;
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += '/' + path;
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
       } else {
@@ -477,8 +486,8 @@ function (_Exchange) {
         var signature = this.hmac(this.encode(query), this.encode(this.secret), 'sha1');
         var auth = this.encode(this.apiKey + ':' + signature);
         headers = {
-          'Json-Rpc-Tonce': nonce,
-          'Authorization': "Basic " + this.decode(this.stringToBase64(auth)),
+          'Json-Rpc-Tonce': nonce.toString(),
+          'Authorization': 'Basic ' + this.decode(this.stringToBase64(auth)),
           'Content-Type': 'application/json'
         };
       }

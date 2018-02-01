@@ -21,8 +21,7 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError,
-    AuthenticationError = _require.AuthenticationError; // ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError; // ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -45,10 +44,12 @@ function (_Exchange) {
         'countries': 'US',
         'rateLimit': 1500,
         'version': 'v2',
-        'hasPublicAPI': false,
-        'hasCORS': true,
-        'hasFetchTrades': false,
-        'hasFetchOHLCV': true,
+        'has': {
+          'publicAPI': false,
+          'CORS': true,
+          'fetchTrades': false,
+          'fetchOHLCV': true
+        },
         'timeframes': {
           '1m': '60',
           '15m': '900',
@@ -442,9 +443,9 @@ function (_Exchange) {
                   'symbol': market['id'],
                   'resolution': this.timeframes[timeframe]
                 };
-                if (since) request['date_start'] = this.iso8601(since); // they also support date_end
+                if (typeof since !== 'undefined') request['date_start'] = this.iso8601(since); // they also support date_end
 
-                if (limit) request['limit'] = limit;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context7.next = 12;
                 return this.privateGetMarketBars(this.extend(request, params));
 

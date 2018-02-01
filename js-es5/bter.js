@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -46,9 +46,12 @@ function (_Exchange) {
         'countries': ['VG', 'CN'],
         // British Virgin Islands, China
         'version': '2',
-        'hasCORS': false,
-        'hasFetchTickers': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'createMarketOrder': false,
+          'fetchTickers': true,
+          'withdraw': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27980479-cfa3188c-6387-11e7-8191-93fc4184ba5c.jpg',
           'api': {
@@ -56,7 +59,8 @@ function (_Exchange) {
             'private': 'https://api.bter.com/api'
           },
           'www': 'https://bter.com',
-          'doc': 'https://bter.com/api2'
+          'doc': 'https://bter.com/api2',
+          'fees': 'https://bter.com/fee'
         },
         'api': {
           'public': {
@@ -482,7 +486,7 @@ function (_Exchange) {
                 price = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : undefined;
                 params = _args7.length > 5 && _args7[5] !== undefined ? _args7[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context7.next = 4;
                   break;
                 }
@@ -567,19 +571,21 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             response,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
             switch (_context9.prev = _context9.next) {
               case 0:
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
-                _context9.next = 3;
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
+                _context9.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context9.next = 5;
+              case 4:
+                _context9.next = 6;
                 return this.privatePostWithdraw(this.extend({
                   'currency': currency.toLowerCase(),
                   'amount': amount,
@@ -587,14 +593,14 @@ function (_Exchange) {
 
                 }, params));
 
-              case 5:
+              case 6:
                 response = _context9.sent;
                 return _context9.abrupt("return", {
                   'info': response,
                   'id': undefined
                 });
 
-              case 7:
+              case 8:
               case "end":
                 return _context9.stop();
             }
@@ -614,11 +620,11 @@ function (_Exchange) {
       var params = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
-      var prefix = api == 'private' ? api + '/' : '';
+      var prefix = api === 'private' ? api + '/' : '';
       var url = this.urls['api'][api] + this.version + '/1/' + prefix + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -675,7 +681,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['result'] != 'true')) {
+                if (!(response['result'] !== 'true')) {
                   _context10.next = 11;
                   break;
                 }

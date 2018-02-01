@@ -1,4 +1,8 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
+
+var _regeneratorRuntime = require("@babel/runtime/regenerator");
+
+var _asyncToGenerator = require("@babel/runtime/helpers/asyncToGenerator");
 
 var _Object$getPrototypeOf = require("@babel/runtime/core-js/object/get-prototype-of");
 
@@ -41,71 +45,6 @@ function (_btcxe) {
           'www': 'https://getbtc.org',
           'doc': 'https://getbtc.org/api-docs.php'
         },
-        'markets': {
-          'BTC/EUR': {
-            'id': 'EUR',
-            'symbol': 'BTC/EUR',
-            'base': 'BTC',
-            'quote': 'EUR',
-            'precision': {
-              'amount': 8,
-              'price': 8
-            },
-            'lot': 0.00000001,
-            'limits': {
-              'amount': {
-                'min': 0.00000001,
-                'max': undefined
-              },
-              'price': {
-                'min': 0.00000001,
-                'max': undefined
-              }
-            }
-          },
-          'BTC/RUB': {
-            'id': 'RUB',
-            'symbol': 'BTC/RUB',
-            'base': 'BTC',
-            'quote': 'RUB',
-            'precision': {
-              'amount': 8,
-              'price': 8
-            },
-            'lot': 0.00000001,
-            'limits': {
-              'amount': {
-                'min': 0.00000001,
-                'max': undefined
-              },
-              'price': {
-                'min': 0.00000001,
-                'max': undefined
-              }
-            }
-          },
-          'BTC/USD': {
-            'id': 'USD',
-            'symbol': 'BTC/USD',
-            'base': 'BTC',
-            'quote': 'USD',
-            'precision': {
-              'amount': 8,
-              'price': 8
-            },
-            'lot': 0.00000001,
-            'limits': {
-              'amount': {
-                'min': 0.00000001,
-                'max': undefined
-              },
-              'price': {
-                'min': 0.00000001,
-                'max': undefined
-              }
-            }
-          }
-        },
         'fees': {
           'trading': {
             'taker': 0.20 / 100,
@@ -114,6 +53,90 @@ function (_btcxe) {
         }
       });
     }
+  }, {
+    key: "fetchMarkets",
+    value: function () {
+      var _fetchMarkets = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee() {
+        return _regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                return _context.abrupt("return", [{
+                  'id': 'EUR',
+                  'symbol': 'BTC/EUR',
+                  'base': 'BTC',
+                  'quote': 'EUR',
+                  'precision': {
+                    'amount': 8,
+                    'price': 8
+                  },
+                  'lot': 0.00000001,
+                  'limits': {
+                    'amount': {
+                      'min': 0.00000001,
+                      'max': undefined
+                    },
+                    'price': {
+                      'min': 0.00000001,
+                      'max': undefined
+                    }
+                  }
+                }, {
+                  'id': 'RUB',
+                  'symbol': 'BTC/RUB',
+                  'base': 'BTC',
+                  'quote': 'RUB',
+                  'precision': {
+                    'amount': 8,
+                    'price': 8
+                  },
+                  'lot': 0.00000001,
+                  'limits': {
+                    'amount': {
+                      'min': 0.00000001,
+                      'max': undefined
+                    },
+                    'price': {
+                      'min': 0.00000001,
+                      'max': undefined
+                    }
+                  }
+                }, {
+                  'id': 'USD',
+                  'symbol': 'BTC/USD',
+                  'base': 'BTC',
+                  'quote': 'USD',
+                  'precision': {
+                    'amount': 8,
+                    'price': 8
+                  },
+                  'lot': 0.00000001,
+                  'limits': {
+                    'amount': {
+                      'min': 0.00000001,
+                      'max': undefined
+                    },
+                    'price': {
+                      'min': 0.00000001,
+                      'max': undefined
+                    }
+                  }
+                }]);
+
+              case 1:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      return function fetchMarkets() {
+        return _fetchMarkets.apply(this, arguments);
+      };
+    }()
   }]);
 
   return getbtc;

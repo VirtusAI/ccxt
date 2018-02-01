@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -45,11 +45,9 @@ function (_Exchange) {
         'countries': 'CA',
         'rateLimit': 1000,
         'version': 'v2',
-        'hasCORS': true,
-        // obsolete metainfo interface
-        'hasWithdraw': true,
-        // new metainfo interface
         'has': {
+          'fetchDepositAddress': true,
+          'CORS': true,
           'withdraw': true
         },
         'urls': {
@@ -68,7 +66,7 @@ function (_Exchange) {
             'get': ['order_book', 'ticker', 'transactions']
           },
           'private': {
-            'post': ['balance', 'bitcoin_deposit_address', 'bitcoin_withdrawal', 'buy', 'cancel_order', 'ether_deposit_address', 'ether_withdrawal', 'lookup_order', 'open_orders', 'sell', 'user_transactions']
+            'post': ['balance', 'bitcoin_deposit_address', 'bitcoin_withdrawal', 'bitcoincash_deposit_address', 'bitcoincash_withdrawal', 'bitcoingold_deposit_address', 'bitcoingold_withdrawal', 'buy', 'cancel_order', 'ether_deposit_address', 'ether_withdrawal', 'litecoin_deposit_address', 'litecoin_withdrawal', 'lookup_order', 'open_orders', 'sell', 'user_transactions']
           }
         },
         'markets': {
@@ -112,11 +110,27 @@ function (_Exchange) {
             'maker': 0.005,
             'taker': 0.005
           },
+          'LTC/BTC': {
+            'id': 'ltc_btc',
+            'symbol': 'LTC/BTC',
+            'base': 'LTC',
+            'quote': 'BTC',
+            'maker': 0.005,
+            'taker': 0.005
+          },
           'BCH/CAD': {
-            'id': 'btc_cad',
+            'id': 'bch_cad',
             'symbol': 'BCH/CAD',
             'base': 'BCH',
             'quote': 'CAD',
+            'maker': 0.005,
+            'taker': 0.005
+          },
+          'BCH/BTC': {
+            'id': 'bch_btc',
+            'symbol': 'BCH/BTC',
+            'base': 'BCH',
+            'quote': 'BTC',
             'maker': 0.005,
             'taker': 0.005
           },
@@ -125,6 +139,14 @@ function (_Exchange) {
             'symbol': 'BTG/CAD',
             'base': 'BTG',
             'quote': 'CAD',
+            'maker': 0.005,
+            'taker': 0.005
+          },
+          'BTG/BTC': {
+            'id': 'btg_btc',
+            'symbol': 'BTG/BTC',
+            'base': 'BTG',
+            'quote': 'BTC',
             'maker': 0.005,
             'taker': 0.005
           }
@@ -366,7 +388,7 @@ function (_Exchange) {
                   'amount': amount,
                   'book': this.marketId(symbol)
                 };
-                if (type == 'limit') order['price'] = price;
+                if (type === 'limit') order['price'] = price;
                 _context5.next = 7;
                 return this[method](this.extend(order, params));
 
@@ -479,8 +501,14 @@ function (_Exchange) {
   }, {
     key: "getCurrencyName",
     value: function getCurrencyName(currency) {
-      if (currency == 'ETH') return 'Ether';
-      if (currency == 'BTC') return 'Bitcoin';
+      var currencies = {
+        'ETH': 'Ether',
+        'BTC': 'Bitcoin',
+        'LTC': 'Litecoin',
+        'BCH': 'Bitcoincash',
+        'BTG': 'Bitcoingold'
+      };
+      return currencies[currency];
     }
   }, {
     key: "withdraw",
@@ -488,7 +516,8 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee8(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             request,
             method,
             response,
@@ -497,27 +526,28 @@ function (_Exchange) {
           while (1) {
             switch (_context8.prev = _context8.next) {
               case 0:
-                params = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : {};
-                _context8.next = 3;
+                tag = _args8.length > 3 && _args8[3] !== undefined ? _args8[3] : undefined;
+                params = _args8.length > 4 && _args8[4] !== undefined ? _args8[4] : {};
+                _context8.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 request = {
                   'amount': amount,
                   'address': address
                 };
                 method = 'privatePost' + this.getCurrencyName(currency) + 'Withdrawal';
-                _context8.next = 7;
+                _context8.next = 8;
                 return this[method](this.extend(request, params));
 
-              case 7:
+              case 8:
                 response = _context8.sent;
                 return _context8.abrupt("return", {
                   'info': response,
                   'id': undefined
                 });
 
-              case 9:
+              case 10:
               case "end":
                 return _context8.stop();
             }
@@ -539,7 +569,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += '?' + this.urlencode(params);
       } else {
         this.checkRequiredCredentials();
@@ -563,6 +593,18 @@ function (_Exchange) {
         'body': body,
         'headers': headers
       };
+    }
+  }, {
+    key: "handleErrors",
+    value: function handleErrors(statusCode, statusText, url, method, headers, body) {
+      if (typeof body !== 'string') return; // fallback to default error handler
+
+      if (body.length < 2) return; // Here is a sample QuadrigaCX response in case of authentication failure:
+      // {"error":{"code":101,"message":"Invalid API Code or Invalid Signature"}}
+
+      if (statusCode === 200 && body.indexOf('Invalid API Code or Invalid Signature') >= 0) {
+        throw new AuthenticationError(this.id + ' ' + body);
+      }
     }
   }, {
     key: "request",
@@ -592,7 +634,7 @@ function (_Exchange) {
               case 7:
                 response = _context9.sent;
 
-                if (!(typeof response == 'string')) {
+                if (!(typeof response === 'string')) {
                   _context9.next = 10;
                   break;
                 }

@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict';
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -26,8 +26,9 @@ var _require = require('./base/errors'),
     ExchangeError = _require.ExchangeError,
     InsufficientFunds = _require.InsufficientFunds,
     OrderNotFound = _require.OrderNotFound,
-    DDoSProtection = _require.DDoSProtection; // ---------------------------------------------------------------------------
-
+    DDoSProtection = _require.DDoSProtection,
+    InvalidOrder = _require.InvalidOrder,
+    AuthenticationError = _require.AuthenticationError;
 
 module.exports =
 /*#__PURE__*/
@@ -47,19 +48,12 @@ function (_Exchange) {
         'id': 'liqui',
         'name': 'Liqui',
         'countries': 'UA',
-        'rateLimit': 2500,
+        'rateLimit': 3000,
         'version': '3',
-        'hasCORS': false,
-        // obsolete metainfo interface
-        'hasFetchOrder': true,
-        'hasFetchOrders': true,
-        'hasFetchOpenOrders': true,
-        'hasFetchClosedOrders': true,
-        'hasFetchTickers': true,
-        'hasFetchMyTrades': true,
-        'hasWithdraw': true,
-        // new metainfo interface
+        'userAgent': this.userAgents['chrome'],
         'has': {
+          'CORS': false,
+          'createMarketOrder': false,
           'fetchOrder': true,
           'fetchOrders': 'emulated',
           'fetchOpenOrders': true,
@@ -83,7 +77,7 @@ function (_Exchange) {
             'get': ['info', 'ticker/{pair}', 'depth/{pair}', 'trades/{pair}']
           },
           'private': {
-            'post': ['getInfo', 'Trade', 'ActiveOrders', 'OrderInfo', 'CancelOrder', 'TradeHistory', 'TransHistory', 'CoinDepositAddress', 'WithdrawCoin', 'CreateCoupon', 'RedeemCoupon']
+            'post': ['getInfo', 'Trade', 'ActiveOrders', 'OrderInfo', 'CancelOrder', 'TradeHistory', 'CoinDepositAddress', 'WithdrawCoin', 'CreateCoupon', 'RedeemCoupon']
           }
         },
         'fees': {
@@ -91,7 +85,30 @@ function (_Exchange) {
             'maker': 0.001,
             'taker': 0.0025
           },
-          'funding': 0.0
+          'funding': {
+            'tierBased': false,
+            'percentage': false,
+            'withdraw': undefined,
+            'deposit': undefined
+          }
+        },
+        'exceptions': {
+          '803': InvalidOrder,
+          // "Count could not be less than 0.001." (selling below minAmount)
+          '804': InvalidOrder,
+          // "Count could not be more than 10000." (buying above maxAmount)
+          '805': InvalidOrder,
+          // "price could not be less than X." (minPrice violation on buy & sell)
+          '806': InvalidOrder,
+          // "price could not be more than X." (maxPrice violation on buy & sell)
+          '807': InvalidOrder,
+          // "cost could not be less than X." (minCost violation on buy & sell)
+          '831': InsufficientFunds,
+          // "Not enougth X to create buy order." (buying with balance.quote < order.cost)
+          '832': InsufficientFunds,
+          // "Not enougth X to create sell order." (selling with balance.base < order.amount)
+          '833': OrderNotFound // "Order with id X was not found." (cancelling non-existent, closed and cancelled order)
+
         }
       });
     }
@@ -105,7 +122,7 @@ function (_Exchange) {
       var rate = market[takerOrMaker];
       var cost = parseFloat(this.costToPrecision(symbol, amount * rate));
 
-      if (side == 'sell') {
+      if (side === 'sell') {
         cost *= price;
       } else {
         key = 'base';
@@ -122,11 +139,11 @@ function (_Exchange) {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
       if (!this.substituteCommonCurrencyCodes) return currency;
-      if (currency == 'XBT') return 'BTC';
-      if (currency == 'BCC') return 'BCH';
-      if (currency == 'DRK') return 'DASH'; // they misspell DASH as dsh :/
+      if (currency === 'XBT') return 'BTC';
+      if (currency === 'BCC') return 'BCH';
+      if (currency === 'DRK') return 'DASH'; // they misspell DASH as dsh :/
 
-      if (currency == 'DSH') return 'DASH';
+      if (currency === 'DSH') return 'DASH';
       return currency;
     }
   }, {
@@ -149,7 +166,7 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var response, markets, keys, result, p, id, market, _getBaseQuoteFromMark, _getBaseQuoteFromMark2, base, quote, symbol, precision, amountLimits, priceLimits, costLimits, limits, active;
+        var response, markets, keys, result, p, id, market, _getBaseQuoteFromMark, _getBaseQuoteFromMark2, base, quote, symbol, precision, amountLimits, priceLimits, costLimits, limits, hidden, active;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -189,7 +206,8 @@ function (_Exchange) {
                     'price': priceLimits,
                     'cost': costLimits
                   };
-                  active = market['hidden'] == 0;
+                  hidden = this.safeInteger(market, 'hidden');
+                  active = hidden === 0;
                   result.push(this.extend(this.fees['trading'], {
                     'id': id,
                     'symbol': symbol,
@@ -265,7 +283,7 @@ function (_Exchange) {
                   total = undefined;
                   used = undefined;
 
-                  if (balances['open_orders'] == 0) {
+                  if (balances['open_orders'] === 0) {
                     total = funds[currency];
                     used = 0.0;
                   }
@@ -317,7 +335,8 @@ function (_Exchange) {
                 market = this.market(symbol);
                 _context3.next = 6;
                 return this.publicGetDepthPair(this.extend({
-                  'pair': market['id']
+                  'pair': market['id'] // 'limit': 150, // default = 150, max = 2000
+
                 }, params));
 
               case 6:
@@ -394,8 +413,8 @@ function (_Exchange) {
             k,
             id,
             ticker,
-            market,
             symbol,
+            market,
             _args4 = arguments;
         return _regeneratorRuntime.wrap(function _callee4$(_context4) {
           while (1) {
@@ -414,30 +433,34 @@ function (_Exchange) {
                   break;
                 }
 
-                numIds = this.ids.length;
+                // let numIds = this.ids.length;
+                // if (numIds > 256)
+                //     throw new ExchangeError (this.id + ' fetchTickers() requires symbols argument');
+                ids = this.ids.join('-');
 
-                if (!(numIds > 256)) {
-                  _context4.next = 9;
+                if (!(ids.length > 2083)) {
+                  _context4.next = 10;
                   break;
                 }
 
-                throw new ExchangeError(this.id + ' fetchTickers() requires symbols argument');
+                numIds = this.ids.length;
+                throw new ExchangeError(this.id + ' has ' + numIds.toString() + ' symbols exceeding max URL length, you are required to specify a list of symbols in the first argument to fetchTickers');
 
-              case 9:
-                ids = this.ids;
-                _context4.next = 13;
+              case 10:
+                _context4.next = 14;
                 break;
 
               case 12:
                 ids = this.marketIds(symbols);
+                ids = ids.join('-');
 
-              case 13:
-                _context4.next = 15;
+              case 14:
+                _context4.next = 16;
                 return this.publicGetTickerPair(this.extend({
-                  'pair': ids.join('-')
+                  'pair': ids
                 }, params));
 
-              case 15:
+              case 16:
                 tickers = _context4.sent;
                 result = {};
                 keys = _Object$keys(tickers);
@@ -445,14 +468,20 @@ function (_Exchange) {
                 for (k = 0; k < keys.length; k++) {
                   id = keys[k];
                   ticker = tickers[id];
-                  market = this.markets_by_id[id];
-                  symbol = market['symbol'];
+                  symbol = id;
+                  market = undefined;
+
+                  if (id in this.markets_by_id) {
+                    market = this.markets_by_id[id];
+                    symbol = market['symbol'];
+                  }
+
                   result[symbol] = this.parseTicker(ticker, market);
                 }
 
                 return _context4.abrupt("return", result);
 
-              case 20:
+              case 21:
               case "end":
                 return _context4.stop();
             }
@@ -501,10 +530,10 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
-      var timestamp = trade['timestamp'] * 1000;
+      var timestamp = parseInt(trade['timestamp']) * 1000;
       var side = trade['type'];
-      if (side == 'ask') side = 'sell';
-      if (side == 'bid') side = 'buy';
+      if (side === 'ask') side = 'sell';
+      if (side === 'bid') side = 'buy';
       var price = this.safeFloat(trade, 'price');
       if ('rate' in trade) price = this.safeFloat(trade, 'rate');
       var id = this.safeString(trade, 'tid');
@@ -521,14 +550,10 @@ function (_Exchange) {
       var amount = trade['amount'];
       var type = 'limit'; // all trades are still limit trades
 
-      var fee = undefined; // this is filled by fetchMyTrades() only
-      // is_your_order is always false :\
-      // let isYourOrder = this.safeValue (trade, 'is_your_order');
-      // let takerOrMaker = 'taker';
-      // if (isYourOrder)
-      //     takerOrMaker = 'maker';
-      // let fee = this.calculateFee (symbol, type, side, amount, price, takerOrMaker);
-
+      var isYourOrder = this.safeValue(trade, 'is_your_order');
+      var takerOrMaker = 'taker';
+      if (typeof isYourOrder !== 'undefined') if (isYourOrder) takerOrMaker = 'maker';
+      var fee = this.calculateFee(symbol, type, side, amount, price, takerOrMaker);
       return {
         'id': id,
         'order': order,
@@ -571,7 +596,7 @@ function (_Exchange) {
                 request = {
                   'pair': market['id']
                 };
-                if (limit) request['limit'] = limit;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context6.next = 10;
                 return this.publicGetTradesPair(this.extend(request, params));
 
@@ -604,6 +629,9 @@ function (_Exchange) {
             response,
             id,
             timestamp,
+            status,
+            filled,
+            remaining,
             order,
             _args7 = arguments;
         return _regeneratorRuntime.wrap(function _callee7$(_context7) {
@@ -613,7 +641,7 @@ function (_Exchange) {
                 price = _args7.length > 4 && _args7[4] !== undefined ? _args7[4] : undefined;
                 params = _args7.length > 5 && _args7[5] !== undefined ? _args7[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context7.next = 4;
                   break;
                 }
@@ -638,23 +666,31 @@ function (_Exchange) {
               case 10:
                 response = _context7.sent;
                 id = this.safeString(response['return'], this.getOrderIdKey());
-                if (!id) id = this.safeString(response['return'], 'init_order_id');
                 timestamp = this.milliseconds();
                 price = parseFloat(price);
                 amount = parseFloat(amount);
+                status = 'open';
+
+                if (id === '0') {
+                  id = this.safeString(response['return'], 'init_order_id');
+                  status = 'closed';
+                }
+
+                filled = this.safeFloat(response['return'], 'received', 0.0);
+                remaining = this.safeFloat(response['return'], 'remains', amount);
                 order = {
                   'id': id,
                   'timestamp': timestamp,
                   'datetime': this.iso8601(timestamp),
-                  'status': 'open',
+                  'status': status,
                   'symbol': symbol,
                   'type': type,
                   'side': side,
                   'price': price,
-                  'cost': price * amount,
+                  'cost': price * filled,
                   'amount': amount,
-                  'remaining': amount,
-                  'filled': 0.0,
+                  'remaining': remaining,
+                  'filled': filled,
                   'fee': undefined // 'trades': this.parseTrades (order['trades'], market),
 
                 };
@@ -663,7 +699,7 @@ function (_Exchange) {
                   'info': response
                 }, order));
 
-              case 19:
+              case 22:
               case "end":
                 return _context7.stop();
             }
@@ -691,7 +727,6 @@ function (_Exchange) {
             response,
             request,
             idKey,
-            message,
             _args8 = arguments;
         return _regeneratorRuntime.wrap(function _callee8$(_context8) {
           while (1) {
@@ -704,54 +739,23 @@ function (_Exchange) {
 
               case 4:
                 response = undefined;
-                _context8.prev = 5;
                 request = {};
                 idKey = this.getOrderIdKey();
                 request[idKey] = id;
-                _context8.next = 11;
+                _context8.next = 10;
                 return this.privatePostCancelOrder(this.extend(request, params));
 
-              case 11:
+              case 10:
                 response = _context8.sent;
                 if (id in this.orders) this.orders[id]['status'] = 'canceled';
-                _context8.next = 23;
-                break;
-
-              case 15:
-                _context8.prev = 15;
-                _context8.t0 = _context8["catch"](5);
-
-                if (!this.last_json_response) {
-                  _context8.next = 22;
-                  break;
-                }
-
-                message = this.safeString(this.last_json_response, 'error');
-
-                if (!message) {
-                  _context8.next = 22;
-                  break;
-                }
-
-                if (!(message.indexOf('not found') >= 0)) {
-                  _context8.next = 22;
-                  break;
-                }
-
-                throw new OrderNotFound(this.id + ' cancelOrder() error: ' + this.last_http_response);
-
-              case 22:
-                throw _context8.t0;
-
-              case 23:
                 return _context8.abrupt("return", response);
 
-              case 24:
+              case 13:
               case "end":
                 return _context8.stop();
             }
           }
-        }, _callee8, this, [[5, 15]]);
+        }, _callee8, this);
       }));
 
       return function cancelOrder(_x8) {
@@ -763,13 +767,13 @@ function (_Exchange) {
     value: function parseOrder(order) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var id = order['id'].toString();
-      var status = order['status'];
+      var status = this.safeInteger(order, 'status');
 
-      if (status == 0) {
+      if (status === 0) {
         status = 'open';
-      } else if (status == 1) {
+      } else if (status === 1) {
         status = 'closed';
-      } else if (status == 2 || status == 3) {
+      } else if (status === 2 || status === 3) {
         status = 'canceled';
       }
 
@@ -777,21 +781,22 @@ function (_Exchange) {
       var symbol = undefined;
       if (!market) market = this.markets_by_id[order['pair']];
       if (market) symbol = market['symbol'];
-      var remaining = this.safeFloat(order, 'amount');
-      var amount = this.safeFloat(order, 'start_amount', remaining);
-
-      if (typeof amount == 'undefined') {
-        if (id in this.orders) {
-          amount = this.safeFloat(this.orders[id], 'amount');
-        }
-      }
-
+      var remaining = undefined;
+      var amount = undefined;
       var price = this.safeFloat(order, 'rate');
       var filled = undefined;
       var cost = undefined;
 
-      if (typeof amount != 'undefined') {
-        if (typeof remaining != 'undefined') {
+      if ('start_amount' in order) {
+        amount = this.safeFloat(order, 'start_amount');
+        remaining = this.safeFloat(order, 'amount');
+      } else {
+        remaining = this.safeFloat(order, 'amount');
+        if (id in this.orders) amount = this.orders[id]['amount'];
+      }
+
+      if (typeof amount !== 'undefined') {
+        if (typeof remaining !== 'undefined') {
           filled = amount - remaining;
           cost = price * filled;
         }
@@ -897,8 +902,9 @@ function (_Exchange) {
             since,
             limit,
             params,
-            market,
             request,
+            market,
+            _market,
             response,
             openOrders,
             j,
@@ -919,27 +925,22 @@ function (_Exchange) {
                 since = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : undefined;
                 limit = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : undefined;
                 params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
-
-                if (symbol) {
-                  _context10.next = 6;
-                  break;
-                }
-
-                throw new ExchangeError(this.id + ' fetchOrders requires a symbol');
-
-              case 6:
-                _context10.next = 8;
+                _context10.next = 6;
                 return this.loadMarkets();
 
-              case 8:
-                market = this.market(symbol);
-                request = {
-                  'pair': market['id']
-                };
-                _context10.next = 12;
+              case 6:
+                request = {};
+                market = undefined;
+
+                if (symbol) {
+                  _market = this.market(symbol);
+                  request['pair'] = _market['id'];
+                }
+
+                _context10.next = 11;
                 return this.privatePostActiveOrders(this.extend(request, params));
 
-              case 12:
+              case 11:
                 response = _context10.sent;
                 openOrders = [];
                 if ('return' in response) openOrders = this.parseOrders(response['return'], market);
@@ -960,7 +961,7 @@ function (_Exchange) {
                   } else {
                     _order = this.orders[id];
 
-                    if (_order['status'] == 'open') {
+                    if (_order['status'] === 'open') {
                       this.orders[id] = this.extend(_order, {
                         'status': 'closed',
                         'cost': _order['amount'] * _order['price'],
@@ -971,12 +972,17 @@ function (_Exchange) {
                   }
 
                   order = this.orders[id];
-                  if (order['symbol'] == symbol) result.push(order);
+
+                  if (symbol) {
+                    if (order['symbol'] === symbol) result.push(order);
+                  } else {
+                    result.push(order);
+                  }
                 }
 
                 return _context10.abrupt("return", this.filterBySinceLimit(result, since, limit));
 
-              case 21:
+              case 20:
               case "end":
                 return _context10.stop();
             }
@@ -1018,7 +1024,7 @@ function (_Exchange) {
                 result = [];
 
                 for (i = 0; i < orders.length; i++) {
-                  if (orders[i]['status'] == 'open') result.push(orders[i]);
+                  if (orders[i]['status'] === 'open') result.push(orders[i]);
                 }
 
                 return _context11.abrupt("return", result);
@@ -1065,7 +1071,7 @@ function (_Exchange) {
                 result = [];
 
                 for (i = 0; i < orders.length; i++) {
-                  if (orders[i]['status'] == 'closed') result.push(orders[i]);
+                  if (orders[i]['status'] === 'closed') result.push(orders[i]);
                 }
 
                 return _context12.abrupt("return", result);
@@ -1120,13 +1126,13 @@ function (_Exchange) {
                   // 'pair': 'eth_btc', // default = all markets
                 };
 
-                if (symbol) {
+                if (typeof symbol !== 'undefined') {
                   market = this.market(symbol);
                   request['pair'] = market['id'];
                 }
 
-                if (limit) request['count'] = parseInt(limit);
-                if (since) request['since'] = parseInt(since / 1000);
+                if (typeof limit !== 'undefined') request['count'] = parseInt(limit);
+                if (typeof since !== 'undefined') request['since'] = parseInt(since / 1000);
                 _context13.next = 13;
                 return this.privatePostTradeHistory(this.extend(request, params));
 
@@ -1154,33 +1160,35 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee14(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             response,
             _args14 = arguments;
         return _regeneratorRuntime.wrap(function _callee14$(_context14) {
           while (1) {
             switch (_context14.prev = _context14.next) {
               case 0:
-                params = _args14.length > 3 && _args14[3] !== undefined ? _args14[3] : {};
-                _context14.next = 3;
+                tag = _args14.length > 3 && _args14[3] !== undefined ? _args14[3] : undefined;
+                params = _args14.length > 4 && _args14[4] !== undefined ? _args14[4] : {};
+                _context14.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context14.next = 5;
+              case 4:
+                _context14.next = 6;
                 return this.privatePostWithdrawCoin(this.extend({
                   'coinName': currency,
                   'amount': parseFloat(amount),
                   'address': address
                 }, params));
 
-              case 5:
+              case 6:
                 response = _context14.sent;
                 return _context14.abrupt("return", {
                   'info': response,
                   'id': response['return']['tId']
                 });
 
-              case 7:
+              case 8:
               case "end":
                 return _context14.stop();
             }
@@ -1213,7 +1221,7 @@ function (_Exchange) {
       var url = this.urls['api'][api];
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         body = this.urlencode(this.extend({
@@ -1239,84 +1247,80 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee15(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args15 = arguments;
-        return _regeneratorRuntime.wrap(function _callee15$(_context15) {
-          while (1) {
-            switch (_context15.prev = _context15.next) {
-              case 0:
-                api = _args15.length > 1 && _args15[1] !== undefined ? _args15[1] : 'public';
-                method = _args15.length > 2 && _args15[2] !== undefined ? _args15[2] : 'GET';
-                params = _args15.length > 3 && _args15[3] !== undefined ? _args15[3] : {};
-                headers = _args15.length > 4 && _args15[4] !== undefined ? _args15[4] : undefined;
-                body = _args15.length > 5 && _args15[5] !== undefined ? _args15[5] : undefined;
-                _context15.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
+    key: "handleErrors",
+    value: function handleErrors(httpCode, reason, url, method, headers, body) {
+      if (typeof body !== 'string') return; // fallback to default error handler
 
-              case 7:
-                response = _context15.sent;
+      if (body.length < 2) return; // fallback to default error handler
 
-                if (!('success' in response)) {
-                  _context15.next = 23;
-                  break;
-                }
+      if (body[0] === '{' || body[0] === '[') {
+        var response = JSON.parse(body);
 
-                if (response['success']) {
-                  _context15.next = 23;
-                  break;
-                }
+        if ('success' in response) {
+          //
+          // 1 - Liqui only returns the integer 'success' key from their private API
+          //
+          //     { "success": 1, ... } httpCode === 200
+          //     { "success": 0, ... } httpCode === 200
+          //
+          // 2 - However, exchanges derived from Liqui, can return non-integers
+          //
+          //     It can be a numeric string
+          //     { "sucesss": "1", ... }
+          //     { "sucesss": "0", ... }, httpCode >= 200 (can be 403, 502, etc)
+          //
+          //     Or just a string
+          //     { "success": "true", ... }
+          //     { "success": "false", ... }, httpCode >= 200
+          //
+          //     Or a boolean
+          //     { "success": true, ... }
+          //     { "success": false, ... }, httpCode >= 200
+          //
+          // 3 - Oversimplified, Python PEP8 forbids comparison operator (===) of different types
+          //
+          // 4 - We do not want to copy-paste and duplicate the code of this handler to other exchanges derived from Liqui
+          //
+          // To cover points 1, 2, 3 and 4 combined this handler should work like this:
+          //
+          var success = this.safeValue(response, 'success', false);
 
-                if (!(response['error'].indexOf('Not enougth') >= 0)) {
-                  _context15.next = 14;
-                  break;
-                }
+          if (typeof success === 'string') {
+            if (success === 'true' || success === '1') success = true;else success = false;
+          }
 
-                throw new InsufficientFunds(this.id + ' ' + this.json(response));
+          if (!success) {
+            var code = this.safeString(response, 'code');
+            var message = this.safeString(response, 'error');
+            var feedback = this.id + ' ' + this.json(response);
+            var exceptions = this.exceptions;
 
-              case 14:
-                if (!(response['error'] == 'Requests too often')) {
-                  _context15.next = 18;
-                  break;
-                }
+            if (code in exceptions) {
+              throw new exceptions[code](feedback);
+            } // need a second error map for these messages, apparently...
+            // in fact, we can use the same .exceptions with string-keys to save some loc here
 
-                throw new DDoSProtection(this.id + ' ' + this.json(response));
 
-              case 18:
-                if (!(response['error'] == 'not available' || response['error'] == 'external service unavailable')) {
-                  _context15.next = 22;
-                  break;
-                }
-
-                throw new DDoSProtection(this.id + ' ' + this.json(response));
-
-              case 22:
-                throw new ExchangeError(this.id + ' ' + this.json(response));
-
-              case 23:
-                return _context15.abrupt("return", response);
-
-              case 24:
-              case "end":
-                return _context15.stop();
+            if (message === 'invalid api key') {
+              throw new AuthenticationError(feedback);
+            } else if (message === 'api key dont have trade permission') {
+              throw new AuthenticationError(feedback);
+            } else if (message.indexOf('invalid parameter') >= 0) {
+              // errorCode 0, returned on buy(symbol, 0, 0)
+              throw new InvalidOrder(feedback);
+            } else if (message === 'Requests too often') {
+              throw new DDoSProtection(feedback);
+            } else if (message === 'not available') {
+              throw new DDoSProtection(feedback);
+            } else if (message === 'external service unavailable') {
+              throw new DDoSProtection(feedback);
+            } else {
+              throw new ExchangeError(this.id + ' unknown "error" value: ' + this.json(response));
             }
           }
-        }, _callee15, this);
-      }));
-
-      return function request(_x13) {
-        return _request.apply(this, arguments);
-      };
-    }()
+        }
+      }
+    }
   }]);
 
   return liqui;

@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -23,7 +23,8 @@ var hitbtc = require('./hitbtc');
 var _require = require('./base/errors'),
     ExchangeError = _require.ExchangeError,
     OrderNotFound = _require.OrderNotFound,
-    InsufficientFunds = _require.InsufficientFunds; // ---------------------------------------------------------------------------
+    InsufficientFunds = _require.InsufficientFunds,
+    InvalidOrder = _require.InvalidOrder; // ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -43,23 +44,13 @@ function (_hitbtc) {
       return this.deepExtend(_get(hitbtc2.prototype.__proto__ || _Object$getPrototypeOf(hitbtc2.prototype), "describe", this).call(this), {
         'id': 'hitbtc2',
         'name': 'HitBTC v2',
-        'countries': 'HK',
-        // Hong Kong
+        'countries': 'UK',
         'rateLimit': 1500,
         'version': '2',
-        'hasCORS': true,
-        // older metainfo interface
-        'hasFetchOHLCV': true,
-        'hasFetchTickers': true,
-        'hasFetchOrder': true,
-        'hasFetchOrders': false,
-        'hasFetchOpenOrders': true,
-        'hasFetchClosedOrders': true,
-        'hasFetchMyTrades': true,
-        'hasWithdraw': true,
-        'hasFetchCurrencies': true,
-        // new metainfo interface
         'has': {
+          'createDepositAddress': true,
+          'fetchDepositAddress': true,
+          'CORS': true,
           'fetchCurrencies': true,
           'fetchOHLCV': true,
           'fetchTickers': true,
@@ -87,7 +78,8 @@ function (_hitbtc) {
           'logo': 'https://user-images.githubusercontent.com/1294454/27766555-8eaec20e-5edc-11e7-9c5b-6dc69fc42f5e.jpg',
           'api': 'https://api.hitbtc.com',
           'www': 'https://hitbtc.com',
-          'doc': 'https://api.hitbtc.com'
+          'doc': 'https://api.hitbtc.com',
+          'fees': ['https://hitbtc.com/fees-and-limits', 'https://support.hitbtc.com/hc/en-us/articles/115005148605-Fees-and-limits']
         },
         'api': {
           'public': {
@@ -136,11 +128,14 @@ function (_hitbtc) {
             'tierBased': false,
             'percentage': false,
             'withdraw': {
-              'BTC': 0.0007,
+              'BTC': 0.001,
+              'BCC': 0.0018,
               'ETH': 0.00958,
               'BCH': 0.0018,
-              'USDT': 5,
+              'USDT': 100,
+              'DASH': 0.03,
               'BTG': 0.0005,
+              'XRP': 0.509,
               'LTC': 0.003,
               'ZEC': 0.0001,
               'XMR': 0.09,
@@ -149,9 +144,10 @@ function (_hitbtc) {
               'AE': 6.7,
               'AEON': 0.01006,
               'AIR': 565,
-              'AMP': 9,
+              'AMM': 14,
+              'AMP': 342,
               'ANT': 6.7,
-              'ARDR': 2,
+              'ARDR': 1,
               'ARN': 18.5,
               'ART': 26,
               'ATB': 0.0004,
@@ -167,26 +163,31 @@ function (_hitbtc) {
               'BMT': 100,
               'BNT': 2.57,
               'BQX': 4.7,
+              'BTCA': 351.21,
               'BTM': 40,
               'BTX': 0.04,
               'BUS': 0.004,
-              'CCT': 115,
+              'CAPP': 97,
+              'CCT': 6,
               'CDT': 100,
               'CDX': 30,
               'CFI': 61,
+              'CL': 13.85,
               'CLD': 0.88,
               'CND': 574,
               'CNX': 0.04,
               'COSS': 65,
+              'CPAY': 5.487,
               'CSNO': 16,
               'CTR': 15,
               'CTX': 146,
               'CVC': 8.46,
+              'DATA': 12.949,
               'DBIX': 0.0168,
-              'DCN': 120000,
+              'DCN': 1280,
               'DCT': 0.02,
               'DDF': 342,
-              'DENT': 6240,
+              'DENT': 1000,
               'DGB': 0.4,
               'DGD': 0.01,
               'DICE': 0.32,
@@ -203,10 +204,11 @@ function (_hitbtc) {
               'ECAT': 14,
               'EDG': 2,
               'EDO': 2.9,
+              'EKO': 1136.36,
               'ELE': 0.00172,
               'ELM': 0.004,
               'EMC': 0.03,
-              'EMGO': 14,
+              'MGO': 14,
               'ENJ': 163,
               'EOS': 1.5,
               'ERO': 34,
@@ -215,14 +217,17 @@ function (_hitbtc) {
               'ETP': 0.004,
               'EVX': 5.4,
               'EXN': 456,
+              'FCN': 0.000005,
               'FRD': 65,
               'FUEL': 123.00105,
               'FUN': 202.9598309,
               'FYN': 1.849,
               'FYP': 66.13,
+              'GAME': 0.004,
               'GNO': 0.0034,
               'GUP': 4,
               'GVT': 1.2,
+              'HSR': 0.04,
               'HAC': 144,
               'HDG': 7,
               'HGT': 1082,
@@ -232,16 +237,19 @@ function (_hitbtc) {
               'ICO': 34,
               'ICOS': 0.35,
               'IND': 76,
-              'INDI': 5913,
+              'INDI': 790,
               'ITS': 15.0012,
               'IXT': 11,
               'KBR': 143,
               'KICK': 112,
+              'KMD': 4,
               'LA': 41,
+              'LEND': 388,
               'LAT': 1.44,
               'LIFE': 13000,
               'LRC': 27,
               'LSK': 0.3,
+              'LOC': 11.076,
               'LUN': 0.34,
               'MAID': 5,
               'MANA': 143,
@@ -249,12 +257,14 @@ function (_hitbtc) {
               'MIPS': 43,
               'MNE': 1.33,
               'MSP': 121,
+              'MCO': 0.357,
               'MTH': 92,
               'MYB': 3.9,
               'NDC': 165,
               'NEBL': 0.04,
               'NET': 3.96,
               'NTO': 998,
+              'NGC': 2.368,
               'NXC': 13.39,
               'NXT': 3,
               'OAX': 15,
@@ -282,20 +292,26 @@ function (_hitbtc) {
               'QVT': 64,
               'REP': 0.02,
               'RKC': 15,
+              'RLC': 1.21,
               'RVT': 14,
+              'SC': 30,
               'SAN': 2.24,
               'SBD': 0.03,
               'SCL': 2.6,
               'SISA': 1640,
               'SKIN': 407,
+              'SWFTC': 352.94,
               'SMART': 0.4,
               'SMS': 0.0375,
               'SNC': 36,
               'SNGLS': 4,
               'SNM': 48,
               'SNT': 233,
+              'STAR': 0.144,
+              'STORM': 153.19,
               'STEEM': 0.01,
               'STRAT': 0.01,
+              'SPF': 14.4,
               'STU': 14,
               'STX': 11,
               'SUB': 17,
@@ -307,12 +323,14 @@ function (_hitbtc) {
               'TIME': 0.03,
               'TIX': 7.1,
               'TKN': 1,
+              'TGT': 173,
               'TKR': 84,
               'TNT': 90,
               'TRST': 1.6,
-              'TRX': 1395,
+              'TRX': 270,
               'UET': 480,
               'UGT': 15,
+              'UTT': 3,
               'VEN': 14,
               'VERI': 0.037,
               'VIB': 50,
@@ -321,6 +339,7 @@ function (_hitbtc) {
               'WEALTH': 0.0168,
               'WINGS': 2.4,
               'WTC': 0.75,
+              'WRC': 48,
               'XAUR': 3.23,
               'XDN': 0.01,
               'XEM': 15,
@@ -331,8 +350,8 @@ function (_hitbtc) {
               'ZSC': 191
             },
             'deposit': {
-              'BTC': 0,
-              'ETH': 0,
+              'BTC': 0.0006,
+              'ETH': 0.003,
               'BCH': 0,
               'USDT': 0,
               'BTG': 0,
@@ -532,13 +551,14 @@ function (_hitbtc) {
   }, {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
-      if (currency == 'CAT') return 'BitClave';
-      return currency;
-    }
-  }, {
-    key: "currencyId",
-    value: function currencyId(currency) {
-      if (currency == 'BitClave') return 'CAT';
+      var currencies = {
+        'XBT': 'BTC',
+        'DRK': 'DASH',
+        'CAT': 'BitClave',
+        'USD': 'USDT',
+        'EMGO': 'MGO'
+      };
+      if (currency in currencies) return currencies[currency];
       return currency;
     }
   }, {
@@ -552,7 +572,7 @@ function (_hitbtc) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, result, i, market, id, base, quote, symbol, lot, step, precision, taker, maker;
+        var markets, result, i, market, id, baseId, quoteId, base, quote, symbol, lot, step, precision, taker, maker;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
@@ -567,10 +587,10 @@ function (_hitbtc) {
                 for (i = 0; i < markets.length; i++) {
                   market = markets[i];
                   id = market['id'];
-                  base = market['baseCurrency'];
-                  quote = market['quoteCurrency'];
-                  base = this.commonCurrencyCode(base);
-                  quote = this.commonCurrencyCode(quote);
+                  baseId = market['baseCurrency'];
+                  quoteId = market['quoteCurrency'];
+                  base = this.commonCurrencyCode(baseId);
+                  quote = this.commonCurrencyCode(quoteId);
                   symbol = base + '/' + quote;
                   lot = parseFloat(market['quantityIncrement']);
                   step = parseFloat(market['tickSize']);
@@ -586,6 +606,8 @@ function (_hitbtc) {
                     'symbol': symbol,
                     'base': base,
                     'quote': quote,
+                    'baseId': baseId,
+                    'quoteId': quoteId,
                     'active': true,
                     'lot': lot,
                     'step': step,
@@ -826,7 +848,7 @@ function (_hitbtc) {
                   'symbol': market['id'],
                   'period': this.timeframes[timeframe]
                 };
-                if (limit) request['limit'] = limit;
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context4.next = 11;
                 return this.publicGetCandlesSymbol(this.extend(request, params));
 
@@ -866,7 +888,8 @@ function (_hitbtc) {
               case 3:
                 _context5.next = 5;
                 return this.publicGetOrderbookSymbol(this.extend({
-                  'symbol': this.marketId(symbol)
+                  'symbol': this.marketId(symbol) // 'limit': 100, // default = 100, 0 = unlimited
+
                 }, params));
 
               case 5:
@@ -1122,6 +1145,8 @@ function (_hitbtc) {
         var price,
             params,
             market,
+            uuid,
+            parts,
             clientOrderId,
             request,
             response,
@@ -1138,10 +1163,11 @@ function (_hitbtc) {
                 return this.loadMarkets();
 
               case 4:
-                market = this.market(symbol);
-                clientOrderId = this.uuid(); // their max accepted length is 32 characters
+                market = this.market(symbol); // their max accepted length is 32 characters
 
-                clientOrderId = clientOrderId.replace('-', '');
+                uuid = this.uuid();
+                parts = uuid.split('-');
+                clientOrderId = parts.join('');
                 clientOrderId = clientOrderId.slice(0, 32);
                 amount = parseFloat(amount);
                 request = {
@@ -1152,23 +1178,23 @@ function (_hitbtc) {
                   'type': type
                 };
 
-                if (type == 'limit') {
+                if (type === 'limit') {
                   request['price'] = this.priceToPrecision(symbol, price);
                 } else {
                   request['timeInForce'] = 'FOK';
                 }
 
-                _context9.next = 13;
+                _context9.next = 14;
                 return this.privatePostOrder(this.extend(request, params));
 
-              case 13:
+              case 14:
                 response = _context9.sent;
                 order = this.parseOrder(response);
                 id = order['id'];
                 this.orders[id] = order;
                 return _context9.abrupt("return", order);
 
-              case 18:
+              case 19:
               case "end":
                 return _context9.stop();
             }
@@ -1233,31 +1259,31 @@ function (_hitbtc) {
       var filled = this.safeFloat(order, 'cumQuantity');
       var status = order['status'];
 
-      if (status == 'new') {
+      if (status === 'new') {
         status = 'open';
-      } else if (status == 'suspended') {
+      } else if (status === 'suspended') {
         status = 'open';
-      } else if (status == 'partiallyFilled') {
+      } else if (status === 'partiallyFilled') {
         status = 'open';
-      } else if (status == 'filled') {
+      } else if (status === 'filled') {
         status = 'closed';
       }
 
       var id = order['clientOrderId'].toString();
       var price = this.safeFloat(order, 'price');
 
-      if (typeof price == 'undefined') {
+      if (typeof price === 'undefined') {
         if (id in this.orders) price = this.orders[id]['price'];
       }
 
       var remaining = undefined;
       var cost = undefined;
 
-      if (typeof amount != 'undefined') {
-        if (typeof filled != 'undefined') {
+      if (typeof amount !== 'undefined') {
+        if (typeof filled !== 'undefined') {
           remaining = amount - filled;
 
-          if (typeof price != 'undefined') {
+          if (typeof price !== 'undefined') {
             cost = filled * price;
           }
         }
@@ -1335,9 +1361,9 @@ function (_hitbtc) {
       };
     }()
   }, {
-    key: "fetchActiveOrder",
+    key: "fetchOpenOrder",
     value: function () {
-      var _fetchActiveOrder = _asyncToGenerator(
+      var _fetchOpenOrder = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee12(id) {
         var symbol,
@@ -1371,8 +1397,8 @@ function (_hitbtc) {
         }, _callee12, this);
       }));
 
-      return function fetchActiveOrder(_x11) {
-        return _fetchActiveOrder.apply(this, arguments);
+      return function fetchOpenOrder(_x11) {
+        return _fetchOpenOrder.apply(this, arguments);
       };
     }()
   }, {
@@ -1462,12 +1488,8 @@ function (_hitbtc) {
                   request['symbol'] = market['id'];
                 }
 
-                if (limit) request['limit'] = limit;
-
-                if (since) {
-                  request['from'] = this.iso8601(since);
-                }
-
+                if (typeof limit !== 'undefined') request['limit'] = limit;
+                if (typeof since !== 'undefined') request['from'] = this.iso8601(since);
                 _context14.next = 13;
                 return this.privateGetHistoryOrder(this.extend(request, params));
 
@@ -1528,8 +1550,8 @@ function (_hitbtc) {
                   request['symbol'] = market['id'];
                 }
 
-                if (since) request['from'] = this.iso8601(since);
-                if (limit) request['limit'] = limit;
+                if (typeof since !== 'undefined') request['from'] = this.iso8601(since);
+                if (typeof limit !== 'undefined') request['limit'] = limit;
                 _context15.next = 13;
                 return this.privateGetHistoryTrades(this.extend(request, params));
 
@@ -1550,38 +1572,53 @@ function (_hitbtc) {
       };
     }()
   }, {
-    key: "createDepositAddress",
+    key: "fetchOrderTrades",
     value: function () {
-      var _createDepositAddress = _asyncToGenerator(
+      var _fetchOrderTrades = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee16(currency) {
-        var params,
-            currencyId,
+      _regeneratorRuntime.mark(function _callee16(id) {
+        var symbol,
+            since,
+            limit,
+            params,
+            market,
             response,
-            address,
+            numOrders,
             _args16 = arguments;
         return _regeneratorRuntime.wrap(function _callee16$(_context16) {
           while (1) {
             switch (_context16.prev = _context16.next) {
               case 0:
-                params = _args16.length > 1 && _args16[1] !== undefined ? _args16[1] : {};
-                currencyId = this.currencyId(currency);
-                _context16.next = 4;
-                return this.privatePostAccountCryptoAddressCurrency({
-                  'currency': currencyId
-                });
+                symbol = _args16.length > 1 && _args16[1] !== undefined ? _args16[1] : undefined;
+                since = _args16.length > 2 && _args16[2] !== undefined ? _args16[2] : undefined;
+                limit = _args16.length > 3 && _args16[3] !== undefined ? _args16[3] : undefined;
+                params = _args16.length > 4 && _args16[4] !== undefined ? _args16[4] : {};
+                _context16.next = 6;
+                return this.loadMarkets();
 
-              case 4:
+              case 6:
+                market = undefined;
+                if (typeof symbol !== 'undefined') market = this.market(symbol);
+                _context16.next = 10;
+                return this.privateGetHistoryOrderIdTrades(this.extend({
+                  'id': id
+                }, params));
+
+              case 10:
                 response = _context16.sent;
-                address = response['address'];
-                return _context16.abrupt("return", {
-                  'currency': currency,
-                  'address': address,
-                  'status': 'ok',
-                  'info': response
-                });
+                numOrders = response.length;
 
-              case 7:
+                if (!(numOrders > 0)) {
+                  _context16.next = 14;
+                  break;
+                }
+
+                return _context16.abrupt("return", this.parseTrades(response, market, since, limit));
+
+              case 14:
+                throw new OrderNotFound(this.id + ' order ' + id + ' not found, ' + this.id + '.fetchOrderTrades() requires an exchange-specific order id, you need to grab it from order["info"]["id"]');
+
+              case 15:
               case "end":
                 return _context16.stop();
             }
@@ -1589,7 +1626,58 @@ function (_hitbtc) {
         }, _callee16, this);
       }));
 
-      return function createDepositAddress(_x12) {
+      return function fetchOrderTrades(_x12) {
+        return _fetchOrderTrades.apply(this, arguments);
+      };
+    }()
+  }, {
+    key: "createDepositAddress",
+    value: function () {
+      var _createDepositAddress = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee17(code) {
+        var params,
+            currency,
+            response,
+            address,
+            tag,
+            _args17 = arguments;
+        return _regeneratorRuntime.wrap(function _callee17$(_context17) {
+          while (1) {
+            switch (_context17.prev = _context17.next) {
+              case 0:
+                params = _args17.length > 1 && _args17[1] !== undefined ? _args17[1] : {};
+                _context17.next = 3;
+                return this.loadMarkets();
+
+              case 3:
+                currency = this.currency(code);
+                _context17.next = 6;
+                return this.privatePostAccountCryptoAddressCurrency({
+                  'currency': currency['id']
+                });
+
+              case 6:
+                response = _context17.sent;
+                address = response['address'];
+                tag = this.safeString(response, 'paymentId');
+                return _context17.abrupt("return", {
+                  'currency': currency,
+                  'address': address,
+                  'tag': tag,
+                  'status': 'ok',
+                  'info': response
+                });
+
+              case 10:
+              case "end":
+                return _context17.stop();
+            }
+          }
+        }, _callee17, this);
+      }));
+
+      return function createDepositAddress(_x13) {
         return _createDepositAddress.apply(this, arguments);
       };
     }()
@@ -1598,42 +1686,49 @@ function (_hitbtc) {
     value: function () {
       var _fetchDepositAddress = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee17(currency) {
+      _regeneratorRuntime.mark(function _callee18(code) {
         var params,
-            currencyId,
+            currency,
             response,
             address,
-            _args17 = arguments;
-        return _regeneratorRuntime.wrap(function _callee17$(_context17) {
+            tag,
+            _args18 = arguments;
+        return _regeneratorRuntime.wrap(function _callee18$(_context18) {
           while (1) {
-            switch (_context17.prev = _context17.next) {
+            switch (_context18.prev = _context18.next) {
               case 0:
-                params = _args17.length > 1 && _args17[1] !== undefined ? _args17[1] : {};
-                currencyId = this.currencyId(currency);
-                _context17.next = 4;
+                params = _args18.length > 1 && _args18[1] !== undefined ? _args18[1] : {};
+                _context18.next = 3;
+                return this.loadMarkets();
+
+              case 3:
+                currency = this.currency(code);
+                _context18.next = 6;
                 return this.privateGetAccountCryptoAddressCurrency({
-                  'currency': currencyId
+                  'currency': currency['id']
                 });
 
-              case 4:
-                response = _context17.sent;
+              case 6:
+                response = _context18.sent;
                 address = response['address'];
-                return _context17.abrupt("return", {
+                tag = this.safeString(response, 'paymentId');
+                return _context18.abrupt("return", {
                   'currency': currency,
                   'address': address,
+                  'tag': tag,
                   'status': 'ok',
                   'info': response
                 });
 
-              case 7:
+              case 10:
               case "end":
-                return _context17.stop();
+                return _context18.stop();
             }
           }
-        }, _callee17, this);
+        }, _callee18, this);
       }));
 
-      return function fetchDepositAddress(_x13) {
+      return function fetchDepositAddress(_x14) {
         return _fetchDepositAddress.apply(this, arguments);
       };
     }()
@@ -1642,41 +1737,45 @@ function (_hitbtc) {
     value: function () {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee18(currency, amount, address) {
-        var params,
-            currencyId,
+      _regeneratorRuntime.mark(function _callee19(code, amount, address) {
+        var tag,
+            params,
+            currency,
+            request,
             response,
-            _args18 = arguments;
-        return _regeneratorRuntime.wrap(function _callee18$(_context18) {
+            _args19 = arguments;
+        return _regeneratorRuntime.wrap(function _callee19$(_context19) {
           while (1) {
-            switch (_context18.prev = _context18.next) {
+            switch (_context19.prev = _context19.next) {
               case 0:
-                params = _args18.length > 3 && _args18[3] !== undefined ? _args18[3] : {};
-                currencyId = this.currencyId(currency);
-                amount = parseFloat(amount);
-                _context18.next = 5;
-                return this.privatePostAccountCryptoWithdraw(this.extend({
-                  'currency': currencyId,
-                  'amount': amount,
+                tag = _args19.length > 3 && _args19[3] !== undefined ? _args19[3] : undefined;
+                params = _args19.length > 4 && _args19[4] !== undefined ? _args19[4] : {};
+                currency = this.currency(code);
+                request = {
+                  'currency': currency['id'],
+                  'amount': parseFloat(amount),
                   'address': address
-                }, params));
+                };
+                if (tag) request['paymentId'] = tag;
+                _context19.next = 7;
+                return this.privatePostAccountCryptoWithdraw(this.extend(request, params));
 
-              case 5:
-                response = _context18.sent;
-                return _context18.abrupt("return", {
+              case 7:
+                response = _context19.sent;
+                return _context19.abrupt("return", {
                   'info': response,
                   'id': response['id']
                 });
 
-              case 7:
+              case 9:
               case "end":
-                return _context18.stop();
+                return _context19.stop();
             }
           }
-        }, _callee18, this);
+        }, _callee19, this);
       }));
 
-      return function withdraw(_x14, _x15, _x16) {
+      return function withdraw(_x15, _x16, _x17) {
         return _withdraw.apply(this, arguments);
       };
     }()
@@ -1691,14 +1790,14 @@ function (_hitbtc) {
       var url = '/api' + '/' + this.version + '/';
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += api + '/' + this.implodeParams(path, params);
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
         url += this.implodeParams(path, params);
 
-        if (method == 'GET') {
+        if (method === 'GET') {
           if (_Object$keys(query).length) url += '?' + this.urlencode(query);
         } else {
           if (_Object$keys(query).length) body = this.json(query);
@@ -1707,7 +1806,7 @@ function (_hitbtc) {
         var payload = this.encode(this.apiKey + ':' + this.secret);
         var auth = this.stringToBase64(payload);
         headers = {
-          'Authorization': "Basic " + this.decode(auth),
+          'Authorization': 'Basic ' + this.decode(auth),
           'Content-Type': 'application/json'
         };
       }
@@ -1723,18 +1822,20 @@ function (_hitbtc) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code == 400) {
-        if (body[0] == "{") {
+      if (code === 400) {
+        if (body[0] === '{') {
           var response = JSON.parse(body);
 
           if ('error' in response) {
             if ('message' in response['error']) {
               var message = response['error']['message'];
 
-              if (message == 'Order not found') {
+              if (message === 'Order not found') {
                 throw new OrderNotFound(this.id + ' order not found in active orders');
-              } else if (message == 'Insufficient funds') {
-                throw new InsufficientFunds(this.id + ' ' + message);
+              } else if (message === 'Insufficient funds') {
+                throw new InsufficientFunds(this.id + ' ' + body);
+              } else if (message === 'Duplicate clientOrderId') {
+                throw new InvalidOrder(this.id + ' ' + body);
               }
             }
           }
@@ -1748,48 +1849,48 @@ function (_hitbtc) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee19(path) {
+      _regeneratorRuntime.mark(function _callee20(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args19 = arguments;
-        return _regeneratorRuntime.wrap(function _callee19$(_context19) {
+            _args20 = arguments;
+        return _regeneratorRuntime.wrap(function _callee20$(_context20) {
           while (1) {
-            switch (_context19.prev = _context19.next) {
+            switch (_context20.prev = _context20.next) {
               case 0:
-                api = _args19.length > 1 && _args19[1] !== undefined ? _args19[1] : 'public';
-                method = _args19.length > 2 && _args19[2] !== undefined ? _args19[2] : 'GET';
-                params = _args19.length > 3 && _args19[3] !== undefined ? _args19[3] : {};
-                headers = _args19.length > 4 && _args19[4] !== undefined ? _args19[4] : undefined;
-                body = _args19.length > 5 && _args19[5] !== undefined ? _args19[5] : undefined;
-                _context19.next = 7;
+                api = _args20.length > 1 && _args20[1] !== undefined ? _args20[1] : 'public';
+                method = _args20.length > 2 && _args20[2] !== undefined ? _args20[2] : 'GET';
+                params = _args20.length > 3 && _args20[3] !== undefined ? _args20[3] : {};
+                headers = _args20.length > 4 && _args20[4] !== undefined ? _args20[4] : undefined;
+                body = _args20.length > 5 && _args20[5] !== undefined ? _args20[5] : undefined;
+                _context20.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context19.sent;
+                response = _context20.sent;
 
                 if (!('error' in response)) {
-                  _context19.next = 10;
+                  _context20.next = 10;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + this.json(response));
 
               case 10:
-                return _context19.abrupt("return", response);
+                return _context20.abrupt("return", response);
 
               case 11:
               case "end":
-                return _context19.stop();
+                return _context20.stop();
             }
           }
-        }, _callee19, this);
+        }, _callee20, this);
       }));
 
-      return function request(_x17) {
+      return function request(_x18) {
         return _request.apply(this, arguments);
       };
     }()

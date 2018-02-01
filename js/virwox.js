@@ -1,21 +1,22 @@
-"use strict";
+'use strict';
 
 //  ---------------------------------------------------------------------------
 
-const Exchange = require ('./base/Exchange')
-const { ExchangeError } = require ('./base/errors')
+const Exchange = require ('./base/Exchange');
+const { ExchangeError } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
 module.exports = class virwox extends Exchange {
-
     describe () {
         return this.deepExtend (super.describe (), {
             'id': 'virwox',
             'name': 'VirWoX',
             'countries': [ 'AT', 'EU' ],
             'rateLimit': 1000,
-            'hasCORS': true,
+            'has': {
+                'CORS': true,
+            },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27766894-6da9d360-5eea-11e7-90aa-41f2711b7405.jpg',
                 'api': {
@@ -29,7 +30,7 @@ module.exports = class virwox extends Exchange {
                 'apiKey': true,
                 'secret': false,
                 'login': true,
-                'password': true
+                'password': true,
             },
             'api': {
                 'public': {
@@ -81,7 +82,7 @@ module.exports = class virwox extends Exchange {
     }
 
     async fetchMarkets () {
-        let markets = await this.publicGetInstruments ();
+        let markets = await this.publicGetGetInstruments ();
         let keys = Object.keys (markets['result']);
         let result = [];
         for (let p = 0; p < keys.length; p++) {
@@ -147,7 +148,7 @@ module.exports = class virwox extends Exchange {
         await this.loadMarkets ();
         let end = this.milliseconds ();
         let start = end - 86400000;
-        let response = await this.publicGetTradedPriceVolume (this.extend ({
+        let response = await this.publicGetGetTradedPriceVolume (this.extend ({
             'instrument': symbol,
             'endDate': this.YmdHMS (end),
             'startDate': this.YmdHMS (start),
@@ -182,13 +183,33 @@ module.exports = class virwox extends Exchange {
         };
     }
 
+    parseTrade (trade, symbol = undefined) {
+        let sec = this.safeInteger (trade, 'time');
+        let timestamp = sec * 1000;
+        return {
+            'id': trade['tid'],
+            'timestamp': timestamp,
+            'datetime': this.iso8601 (timestamp),
+            'order': undefined,
+            'symbol': symbol,
+            'type': undefined,
+            'side': undefined,
+            'price': this.safeFloat (trade, 'price'),
+            'amount': this.safeFloat (trade, 'vol'),
+            'fee': undefined,
+            'info': trade,
+        };
+    }
+
     async fetchTrades (symbol, since = undefined, limit = undefined, params = {}) {
         await this.loadMarkets ();
-        let market = this.market (symbol);
-        return await this.publicGetRawTradeData (this.extend ({
-            'instrument': market['id'],
+        let response = await this.publicGetGetRawTradeData (this.extend ({
+            'instrument': symbol,
             'timespan': 3600,
         }, params));
+        let result = response['result'];
+        let trades = result['data'];
+        return this.parseTrades (trades, symbol);
     }
 
     async createOrder (market, type, side, amount, price = undefined, params = {}) {
@@ -198,7 +219,7 @@ module.exports = class virwox extends Exchange {
             'orderType': side.toUpperCase (),
             'amount': amount,
         };
-        if (type == 'limit')
+        if (type === 'limit')
             order['price'] = price;
         let response = await this.privatePostPlaceOrder (this.extend (order, params));
         return {
@@ -216,14 +237,14 @@ module.exports = class virwox extends Exchange {
     sign (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
         let url = this.urls['api'][api];
         let auth = {};
-        if (api == 'private') {
+        if (api === 'private') {
             this.checkRequiredCredentials ();
             auth['key'] = this.apiKey;
             auth['user'] = this.login;
             auth['pass'] = this.password;
         }
         let nonce = this.nonce ();
-        if (method == 'GET') {
+        if (method === 'GET') {
             url += '?' + this.urlencode (this.extend ({
                 'method': path,
                 'id': nonce,
@@ -239,11 +260,25 @@ module.exports = class virwox extends Exchange {
         return { 'url': url, 'method': method, 'body': body, 'headers': headers };
     }
 
-    async request (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
-        let response = await this.fetch2 (path, api, method, params, headers, body);
-        if ('error' in response)
-            if (response['error'])
-                throw new ExchangeError (this.id + ' ' + this.json (response));
-        return response;
+    handleErrors (code, reason, url, method, headers, body) {
+        if (code === 200) {
+            if ((body[0] === '{') || (body[0] === '[')) {
+                let response = JSON.parse (body);
+                if ('result' in response) {
+                    let result = response['result'];
+                    if ('errorCode' in result) {
+                        let errorCode = result['errorCode'];
+                        if (errorCode !== 'OK') {
+                            throw new ExchangeError (this.id + ' error returned: ' + body);
+                        }
+                    }
+                } else {
+                    throw new ExchangeError (this.id + ' malformed response: no result in response: ' + body);
+                }
+            } else {
+                // if not a JSON response
+                throw new ExchangeError (this.id + ' returned a non-JSON reply: ' + body);
+            }
+        }
     }
-}
+};

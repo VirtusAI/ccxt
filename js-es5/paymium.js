@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -44,7 +44,9 @@ function (_Exchange) {
         'countries': ['FR', 'EU'],
         'rateLimit': 2000,
         'version': 'v1',
-        'hasCORS': true,
+        'has': {
+          'CORS': true
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/27790564-a945a9d4-5ff9-11e7-9d2d-b635763f2f24.jpg',
           'api': 'https://paymium.com/api',
@@ -317,7 +319,7 @@ function (_Exchange) {
                   'direction': side,
                   'amount': amount
                 };
-                if (type == 'market') order['price'] = price;
+                if (type === 'market') order['price'] = price;
                 _context5.next = 6;
                 return this.privatePostUserOrders(this.extend(order, params));
 
@@ -386,7 +388,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();

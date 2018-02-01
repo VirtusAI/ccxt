@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -47,7 +47,10 @@ function (_Exchange) {
         // Tanzania
         'rateLimit': 2000,
         'version': 'v2',
-        'hasCORS': false,
+        'has': {
+          'CORS': false,
+          'createMarketOrder': false
+        },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/30518571-78ca0bca-9b8a-11e7-8840-64b83a4a94b2.jpg',
           'api': 'https://novaexchange.com/remote',
@@ -360,7 +363,7 @@ function (_Exchange) {
                 price = _args6.length > 4 && _args6[4] !== undefined ? _args6[4] : undefined;
                 params = _args6.length > 5 && _args6[5] !== undefined ? _args6[5] : {};
 
-                if (!(type == 'market')) {
+                if (!(type === 'market')) {
                   _context6.next = 4;
                   break;
                 }
@@ -448,11 +451,11 @@ function (_Exchange) {
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version + '/';
-      if (api == 'private') url += api + '/';
+      if (api === 'private') url += api + '/';
       url += this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
@@ -510,7 +513,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['status'] != 'success')) {
+                if (!(response['status'] !== 'success')) {
                   _context8.next = 11;
                   break;
                 }

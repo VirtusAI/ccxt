@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -21,7 +21,8 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError,
+    DDoSProtection = _require.DDoSProtection; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -46,9 +47,11 @@ function (_Exchange) {
         'version': 'v1',
         'userAgent': undefined,
         'rateLimit': 1500,
-        'hasCORS': false,
-        'hasFetchOHLCV': true,
-        'hasWithdraw': true,
+        'has': {
+          'CORS': false,
+          'fetchOHLCV': true,
+          'withdraw': true
+        },
         'timeframes': {
           '1m': '1m',
           '5m': '5m',
@@ -95,7 +98,7 @@ function (_Exchange) {
 
                 for (p = 0; p < markets.length; p++) {
                   market = markets[p];
-                  active = market['state'] != 'Unlisted';
+                  active = market['state'] !== 'Unlisted';
                   id = market['symbol'];
                   base = market['underlying'];
                   quote = market['quoteCurrency'];
@@ -105,7 +108,7 @@ function (_Exchange) {
                   basequote = base + quote;
                   base = this.commonCurrencyCode(base);
                   quote = this.commonCurrencyCode(quote);
-                  swap = id == basequote;
+                  swap = id === basequote;
                   symbol = id;
 
                   if (swap) {
@@ -193,10 +196,10 @@ function (_Exchange) {
                   account = {
                     'free': balance['availableMargin'],
                     'used': 0.0,
-                    'total': balance['amount']
+                    'total': balance['marginBalance']
                   };
 
-                  if (currency == 'BTC') {
+                  if (currency === 'BTC') {
                     account['free'] = account['free'] * 0.00000001;
                     account['total'] = account['total'] * 0.00000001;
                   }
@@ -261,7 +264,7 @@ function (_Exchange) {
 
                 for (o = 0; o < orderbook.length; o++) {
                   order = orderbook[o];
-                  side = order['side'] == 'Sell' ? 'asks' : 'bids';
+                  side = order['side'] === 'Sell' ? 'asks' : 'bids';
                   amount = order['size'];
                   price = order['price'];
                   result[side].push([price, amount]);
@@ -429,13 +432,13 @@ function (_Exchange) {
 
                 };
 
-                if (since) {
+                if (typeof since !== 'undefined') {
                   ymdhms = this.YmdHMS(since);
                   ymdhm = ymdhms.slice(0, 16);
                   request['startTime'] = ymdhm; // starting date filter for results
                 }
 
-                if (limit) request['count'] = limit; // default 100
+                if (typeof limit !== 'undefined') request['count'] = limit; // default 100
 
                 _context5.next = 12;
                 return this.publicGetTradeBucketed(this.extend(request, params));
@@ -553,7 +556,7 @@ function (_Exchange) {
                   'orderQty': amount,
                   'ordType': this.capitalize(type)
                 };
-                if (type == 'limit') order['price'] = price;
+                if (type === 'limit') order['price'] = price;
                 _context7.next = 8;
                 return this.privatePostOrder(this.extend(order, params));
 
@@ -618,8 +621,8 @@ function (_Exchange) {
   }, {
     key: "isFiat",
     value: function isFiat(currency) {
-      if (currency == 'EUR') return true;
-      if (currency == 'PLN') return true;
+      if (currency === 'EUR') return true;
+      if (currency === 'PLN') return true;
       return false;
     }
   }, {
@@ -628,7 +631,8 @@ function (_Exchange) {
       var _withdraw = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
-        var params,
+        var tag,
+            params,
             request,
             response,
             _args9 = arguments;
@@ -636,19 +640,20 @@ function (_Exchange) {
           while (1) {
             switch (_context9.prev = _context9.next) {
               case 0:
-                params = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : {};
-                _context9.next = 3;
+                tag = _args9.length > 3 && _args9[3] !== undefined ? _args9[3] : undefined;
+                params = _args9.length > 4 && _args9[4] !== undefined ? _args9[4] : {};
+                _context9.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                if (!(currency != 'BTC')) {
-                  _context9.next = 5;
+              case 4:
+                if (!(currency !== 'BTC')) {
+                  _context9.next = 6;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' supoprts BTC withdrawals only, other currencies coming soon...');
 
-              case 5:
+              case 6:
                 request = {
                   'currency': 'XBt',
                   // temporarily
@@ -657,17 +662,17 @@ function (_Exchange) {
                   // 'fee': 0.001, // bitcoin network fee
 
                 };
-                _context9.next = 8;
+                _context9.next = 9;
                 return this.privatePostUserRequestWithdrawal(this.extend(request, params));
 
-              case 8:
+              case 9:
                 response = _context9.sent;
                 return _context9.abrupt("return", {
                   'info': response,
                   'id': response['transactID']
                 });
 
-              case 10:
+              case 11:
               case "end":
                 return _context9.stop();
             }
@@ -682,22 +687,21 @@ function (_Exchange) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
+      if (code === 429) throw new DDoSProtection(this.id + ' ' + body);
+
       if (code >= 400) {
         if (body) {
-          if (body[0] == "{") {
+          if (body[0] === '{') {
             var response = JSON.parse(body);
 
             if ('error' in response) {
               if ('message' in response['error']) {
+                // stub code, need proper handling
                 throw new ExchangeError(this.id + ' ' + this.json(response));
               }
             }
           }
-
-          throw new ExchangeError(this.id + ' ' + body);
         }
-
-        throw new ExchangeError(this.id + ' returned an empty response');
       }
     }
   }, {
@@ -714,15 +718,15 @@ function (_Exchange) {
       var headers = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var query = '/api' + '/' + this.version + '/' + path;
-      if (_Object$keys(params).length) query += '?' + this.urlencode(params);
+      if (method !== 'PUT') if (_Object$keys(params).length) query += '?' + this.urlencode(params);
       var url = this.urls['api'] + query;
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
         var auth = method + query + nonce;
 
-        if (method == 'POST') {
+        if (method === 'POST' || method === 'PUT') {
           if (_Object$keys(params).length) {
             body = this.json(params);
             auth += body;

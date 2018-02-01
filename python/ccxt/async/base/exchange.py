@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.456'
+__version__ = '1.10.954'
 
 # -----------------------------------------------------------------------------
 
@@ -12,8 +12,9 @@ import socket
 import time
 import math
 import random
-
+import certifi
 import aiohttp
+import ssl
 
 # -----------------------------------------------------------------------------
 
@@ -41,14 +42,17 @@ __all__ = [
 class Exchange(BaseExchange):
 
     def __init__(self, config={}):
-        super(Exchange, self).__init__(config)
+        if 'asyncio_loop' in config:
+            self.asyncio_loop = config['asyncio_loop']
         self.asyncio_loop = self.asyncio_loop or asyncio.get_event_loop()
-        self.aiohttp_session = self.aiohttp_session or aiohttp.ClientSession(loop=self.asyncio_loop)
+        if 'session' not in config:
+            # Create out SSL context object with our CA cert file
+            context = ssl.create_default_context(cafile=certifi.where())
+            # Pass this SSL context to aiohttp and create a TCPConnector
+            connector = aiohttp.TCPConnector(ssl_context=context, loop=self.asyncio_loop)
+            self.session = aiohttp.ClientSession(loop=self.asyncio_loop, connector=connector)
+        super(Exchange, self).__init__(config)
         self.init_rest_rate_limiter()
-
-    def __del__(self):
-        if self.aiohttp_session:
-            self.aiohttp_session.close()
 
     def init_rest_rate_limiter(self):
         self.throttle = throttle(self.extend({
@@ -99,12 +103,14 @@ class Exchange(BaseExchange):
         if self.verbose:
             print(url, method, url, "\nRequest:", headers, body)
         encoded_body = body.encode() if body else None
-        session_method = getattr(self.aiohttp_session, method.lower())
+        session_method = getattr(self.session, method.lower())
+        http_status_code = None
         try:
             async with session_method(url, data=encoded_body, headers=headers, timeout=(self.timeout / 1000), proxy=self.aiohttp_proxy) as response:
+                http_status_code = response.status
                 text = await response.text()
-                self.handle_errors(response.status, text, url, method, None, text)
-                self.handle_rest_errors(None, response.status, text, url, method)
+                self.handle_errors(http_status_code, text, url, method, None, text)
+                self.handle_rest_errors(None, http_status_code, text, url, method)
         except socket.gaierror as e:
             self.raise_error(ExchangeError, url, method, e, None)
         except concurrent.futures._base.TimeoutError as e:
@@ -115,6 +121,7 @@ class Exchange(BaseExchange):
             self.raise_error(ExchangeError, url, method, e, None)
         if self.verbose:
             print(method, url, "\nResponse:", headers, text)
+        self.handle_errors(http_status_code, text, url, method, None, text)
         return self.handle_rest_response(text, url, method, headers, body)
 
     async def load_markets(self, reload=False):
@@ -128,6 +135,9 @@ class Exchange(BaseExchange):
         if self.has['fetchCurrencies']:
             currencies = await self.fetch_currencies()
         return self.set_markets(markets, currencies)
+
+    async def fetch_markets(self):
+        return self.markets
 
     async def fetch_order_status(self, id, market=None):
         order = await self.fetch_order(id)
@@ -143,6 +153,10 @@ class Exchange(BaseExchange):
             'bids': self.sort_by(self.aggregate(orderbook['bids']), 0, True),
             'asks': self.sort_by(self.aggregate(orderbook['asks']), 0),
         })
+
+    async def fetch_full_tickers(self, symbols=None, params={}):
+        tickers = await self.fetch_tickers(symbols, params)
+        return tickers
 
     async def update_order(self, id, symbol, *args):
         if not self.enableRateLimit:
