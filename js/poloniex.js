@@ -434,9 +434,9 @@ module.exports = class poloniex extends Exchange {
             request['start'] = parseInt (since / 1000);
             request['end'] = this.seconds ();
         }
-        // limit is disabled (does not really work as expected)
-        // if (limit)
-        //     request['limit'] = parseInt (limit);
+
+        if (limit)
+            request['limit'] = parseInt (limit);
         let response = await this.privatePostReturnTradeHistory (this.extend (request, params));
         let result = [];
         if (market) {

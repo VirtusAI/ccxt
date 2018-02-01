@@ -799,15 +799,13 @@ function (_Exchange) {
                 if (typeof since !== 'undefined') {
                   request['start'] = parseInt(since / 1000);
                   request['end'] = this.seconds();
-                } // limit is disabled (does not really work as expected)
-                // if (limit)
-                //     request['limit'] = parseInt (limit);
+                }
 
-
-                _context10.next = 13;
+                if (limit) request['limit'] = parseInt(limit);
+                _context10.next = 14;
                 return this.privatePostReturnTradeHistory(this.extend(request, params));
 
-              case 13:
+              case 14:
                 response = _context10.sent;
                 result = [];
 
@@ -832,7 +830,7 @@ function (_Exchange) {
 
                 return _context10.abrupt("return", this.filterBySinceLimit(result, since, limit));
 
-              case 17:
+              case 18:
               case "end":
                 return _context10.stop();
             }
