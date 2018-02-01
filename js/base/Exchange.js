@@ -32,7 +32,7 @@ const { ExchangeError
       , RequestTimeout
       , ExchangeNotAvailable } = require ('./errors')
 
-const defaultFetch = isNode ? require ('fetch-ponyfill') ().fetch : fetch
+const defaultFetch = require ('fetch-ponyfill') ().fetch
 
 const journal = undefined // isNode && require ('./journal') // stub until we get a better solution for Webpack and React
 

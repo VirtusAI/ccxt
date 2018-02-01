@@ -60,7 +60,8 @@ var _require = require('./errors'),
     RequestTimeout = _require.RequestTimeout,
     ExchangeNotAvailable = _require.ExchangeNotAvailable;
 
-var defaultFetch = isNode ? require('fetch-ponyfill')().fetch : fetch;
+var defaultFetch = require('fetch-ponyfill')().fetch;
+
 var journal = undefined; // isNode && require ('./journal') // stub until we get a better solution for Webpack and React
 
 /*  ------------------------------------------------------------------------ */
