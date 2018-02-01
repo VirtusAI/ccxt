@@ -879,6 +879,7 @@ function () {
       if (currency === 'XBT') return 'BTC';
       if (currency === 'BCC') return 'BCH';
       if (currency === 'DRK') return 'DASH';
+      if (currency === 'XDG') return 'DOGE';
       return currency;
     }
   }, {

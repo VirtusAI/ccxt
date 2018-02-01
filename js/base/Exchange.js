@@ -566,6 +566,8 @@ module.exports = class Exchange {
             return 'BCH'
         if (currency === 'DRK')
             return 'DASH'
+        if (currency === 'XDG')
+            return 'DOGE'
         return currency
     }
 
