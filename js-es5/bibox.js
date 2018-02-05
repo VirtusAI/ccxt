@@ -404,33 +404,34 @@ function (_Exchange) {
         var limit,
             params,
             market,
-            size,
+            request,
             response,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
-                limit = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
+                limit = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : 200;
                 params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
                 _context5.next = 4;
                 return this.loadMarkets();
 
               case 4:
                 market = this.market(symbol);
-                size = limit ? limit : 200;
-                _context5.next = 8;
-                return this.publicGetMdata(this.extend({
+                request = {
                   'cmd': 'depth',
-                  'pair': market['id'],
-                  'size': size
-                }, params));
+                  'pair': market['id']
+                };
+                request['size'] = limit; // default = 200 ?
 
-              case 8:
+                _context5.next = 9;
+                return this.publicGetMdata(this.extend(request, params));
+
+              case 9:
                 response = _context5.sent;
                 return _context5.abrupt("return", this.parseOrderBook(response['result'], this.safeFloat(response['result'], 'update_time'), 'bids', 'asks', 'price', 'volume'));
 
-              case 10:
+              case 11:
               case "end":
                 return _context5.stop();
             }

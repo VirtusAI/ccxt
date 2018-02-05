@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -89,16 +89,18 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee(symbol) {
-        var params,
+        var limit,
+            params,
             _args = arguments;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
+                limit = _args.length > 1 && _args[1] !== undefined ? _args[1] : undefined;
+                params = _args.length > 2 && _args[2] !== undefined ? _args[2] : {};
                 throw new ExchangeError('Fetching order books is not supported by the API of ' + this.id);
 
-              case 2:
+              case 3:
               case "end":
                 return _context.stop();
             }
@@ -114,10 +116,12 @@ function (_Exchange) {
     key: "currencyCode",
     value: function currencyCode(base, name) {
       var currencies = {
-        'Bitgem': 'Bitgem',
-        'NetCoin': 'NetCoin',
         'BatCoin': 'BatCoin',
-        'iCoin': 'iCoin'
+        'Bitgem': 'Bitgem',
+        'BlockCAT': 'BlockCAT',
+        'Catcoin': 'Catcoin',
+        'iCoin': 'iCoin',
+        'NetCoin': 'NetCoin'
       };
       if (name in currencies) return currencies[name];
       return base;

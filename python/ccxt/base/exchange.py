@@ -4,7 +4,7 @@
 
 # -----------------------------------------------------------------------------
 
-__version__ = '1.10.954'
+__version__ = '1.10.1002'
 
 # -----------------------------------------------------------------------------
 
@@ -327,7 +327,7 @@ class Exchange(object):
         headers = self.prepare_request_headers(headers)
         url = self.proxy + url
         if self.verbose:
-            print(method, url, "\nRequest:", headers, body)
+            print(method, url, "\nRequest:", headers, "\n", body)
         if body:
             body = body.encode()
 
@@ -364,7 +364,7 @@ class Exchange(object):
             self.raise_error(ExchangeError, url, method, e)
 
         if self.verbose:
-            print(method, url, "\nResponse:", str(response.headers), self.last_http_response)
+            print(method, url, str(response.status_code), "\nResponse:", str(response.headers), "\n", self.last_http_response)
 
         self.handle_errors(response.status_code, response.reason, url, method, None, self.last_http_response)
         return self.handle_rest_response(self.last_http_response, url, method, headers, body)
@@ -653,12 +653,12 @@ class Exchange(object):
         return utc.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-6] + "{:<03d}".format(int(timestamp) % 1000) + 'Z'
 
     @staticmethod
-    def Ymd(timestamp):
+    def ymd(timestamp):
         utc_datetime = datetime.datetime.utcfromtimestamp(int(round(timestamp / 1000)))
         return utc_datetime.strftime('%Y-%m-%d')
 
     @staticmethod
-    def YmdHMS(timestamp, infix=' '):
+    def ymdhms(timestamp, infix=' '):
         utc_datetime = datetime.datetime.utcfromtimestamp(int(round(timestamp / 1000)))
         return utc_datetime.strftime('%Y-%m-%d' + infix + '%H:%M:%S')
 
@@ -911,8 +911,8 @@ class Exchange(object):
                 raise ExchangeError(self.id + ' unrecognized bidask format: ' + str(bidasks[0]))
         return result
 
-    def fetch_l2_order_book(self, symbol, params={}):
-        orderbook = self.fetch_order_book(symbol, params)
+    def fetch_l2_order_book(self, symbol, limit=None, params={}):
+        orderbook = self.fetch_order_book(symbol, limit, params)
         return self.extend(orderbook, {
             'bids': self.sort_by(self.aggregate(orderbook['bids']), 0, True),
             'asks': self.sort_by(self.aggregate(orderbook['asks']), 0),

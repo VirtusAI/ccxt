@@ -52,7 +52,8 @@ function (_Exchange) {
           'CORS': false,
           'fetchOHCLV': true,
           'fetchOrders': true,
-          'fetchOpenOrders': true
+          'fetchOpenOrders': true,
+          'withdraw': true
         },
         'timeframes': {
           '1m': '1min',
@@ -251,7 +252,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             response,
             _args2 = arguments;
@@ -259,40 +261,41 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context2.next = 6;
+                _context2.next = 7;
                 return this.marketGetDepth(this.extend({
                   'symbol': market['id'],
                   'type': 'step0'
                 }, params));
 
-              case 6:
+              case 7:
                 response = _context2.sent;
 
                 if (!('tick' in response)) {
-                  _context2.next = 11;
+                  _context2.next = 12;
                   break;
                 }
 
                 if (response['tick']) {
-                  _context2.next = 10;
+                  _context2.next = 11;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' fetchOrderBook() returned empty response: ' + this.json(response));
 
-              case 10:
+              case 11:
                 return _context2.abrupt("return", this.parseOrderBook(response['tick'], response['tick']['ts']));
 
-              case 11:
+              case 12:
                 throw new ExchangeError(this.id + ' fetchOrderBook() returned unrecognized response: ' + this.json(response));
 
-              case 12:
+              case 13:
               case "end":
                 return _context2.stop();
             }
@@ -768,11 +771,15 @@ function (_Exchange) {
                 params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
                 open = 0; // 0 for unfilled orders, 1 for filled orders
 
-                return _context10.abrupt("return", this.fetchOrders(symbol, undefined, undefined, this.extend({
+                _context10.next = 7;
+                return this.fetchOrders(symbol, undefined, undefined, this.extend({
                   'status': open
-                }, params)));
+                }, params));
 
-              case 6:
+              case 7:
+                return _context10.abrupt("return", _context10.sent);
+
+              case 8:
               case "end":
                 return _context10.stop();
             }
@@ -945,6 +952,60 @@ function (_Exchange) {
       };
     }()
   }, {
+    key: "withdraw",
+    value: function () {
+      var _withdraw = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee13(currency, amount, address) {
+        var tag,
+            params,
+            request,
+            response,
+            id,
+            _args13 = arguments;
+        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
+          while (1) {
+            switch (_context13.prev = _context13.next) {
+              case 0:
+                tag = _args13.length > 3 && _args13[3] !== undefined ? _args13[3] : undefined;
+                params = _args13.length > 4 && _args13[4] !== undefined ? _args13[4] : {};
+                request = {
+                  'address': address,
+                  // only supports existing addresses in your withdraw address list
+                  'amount': amount,
+                  'currency': currency.toLowerCase()
+                };
+                if (tag) request['addr-tag'] = tag; // only for XRP?
+
+                _context13.next = 6;
+                return this.privatePostDwWithdrawApiCreate(this.extend(request, params));
+
+              case 6:
+                response = _context13.sent;
+                id = undefined;
+
+                if ('data' in response) {
+                  id = response['data'];
+                }
+
+                return _context13.abrupt("return", {
+                  'info': response,
+                  'id': id
+                });
+
+              case 10:
+              case "end":
+                return _context13.stop();
+            }
+          }
+        }, _callee13, this);
+      }));
+
+      return function withdraw(_x10, _x11, _x12) {
+        return _withdraw.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "sign",
     value: function sign(path) {
       var api = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'public';
@@ -959,7 +1020,7 @@ function (_Exchange) {
 
       if (api === 'private') {
         this.checkRequiredCredentials();
-        var timestamp = this.YmdHMS(this.milliseconds(), 'T');
+        var timestamp = this.ymdhms(this.milliseconds(), 'T');
         var request = this.keysort(this.extend({
           'SignatureMethod': 'HmacSHA256',
           'SignatureVersion': '2',
@@ -1002,53 +1063,53 @@ function (_Exchange) {
     value: function () {
       var _request = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee13(path) {
+      _regeneratorRuntime.mark(function _callee14(path) {
         var api,
             method,
             params,
             headers,
             body,
             response,
-            _args13 = arguments;
-        return _regeneratorRuntime.wrap(function _callee13$(_context13) {
+            _args14 = arguments;
+        return _regeneratorRuntime.wrap(function _callee14$(_context14) {
           while (1) {
-            switch (_context13.prev = _context13.next) {
+            switch (_context14.prev = _context14.next) {
               case 0:
-                api = _args13.length > 1 && _args13[1] !== undefined ? _args13[1] : 'public';
-                method = _args13.length > 2 && _args13[2] !== undefined ? _args13[2] : 'GET';
-                params = _args13.length > 3 && _args13[3] !== undefined ? _args13[3] : {};
-                headers = _args13.length > 4 && _args13[4] !== undefined ? _args13[4] : undefined;
-                body = _args13.length > 5 && _args13[5] !== undefined ? _args13[5] : undefined;
-                _context13.next = 7;
+                api = _args14.length > 1 && _args14[1] !== undefined ? _args14[1] : 'public';
+                method = _args14.length > 2 && _args14[2] !== undefined ? _args14[2] : 'GET';
+                params = _args14.length > 3 && _args14[3] !== undefined ? _args14[3] : {};
+                headers = _args14.length > 4 && _args14[4] !== undefined ? _args14[4] : undefined;
+                body = _args14.length > 5 && _args14[5] !== undefined ? _args14[5] : undefined;
+                _context14.next = 7;
                 return this.fetch2(path, api, method, params, headers, body);
 
               case 7:
-                response = _context13.sent;
+                response = _context14.sent;
 
                 if (!('status' in response)) {
-                  _context13.next = 11;
+                  _context14.next = 11;
                   break;
                 }
 
                 if (!(response['status'] === 'error')) {
-                  _context13.next = 11;
+                  _context14.next = 11;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + this.json(response));
 
               case 11:
-                return _context13.abrupt("return", response);
+                return _context14.abrupt("return", response);
 
               case 12:
               case "end":
-                return _context13.stop();
+                return _context14.stop();
             }
           }
-        }, _callee13, this);
+        }, _callee14, this);
       }));
 
-      return function request(_x10) {
+      return function request(_x13) {
         return _request.apply(this, arguments);
       };
     }()

@@ -24,7 +24,9 @@ var _require = require('./base/errors'),
     ExchangeError = _require.ExchangeError,
     InvalidNonce = _require.InvalidNonce,
     InvalidOrder = _require.InvalidOrder,
-    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
+    AuthenticationError = _require.AuthenticationError,
+    InsufficientFunds = _require.InsufficientFunds,
+    OrderNotFound = _require.OrderNotFound; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -396,7 +398,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee4(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             response,
             orderbook,
@@ -405,23 +408,24 @@ function (_Exchange) {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
-                params = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : {};
-                _context4.next = 3;
+                limit = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : undefined;
+                params = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : {};
+                _context4.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context4.next = 6;
+                _context4.next = 7;
                 return this.publicGetOpenOrders(this.extend({
                   'symbol': market['id']
                 }, params));
 
-              case 6:
+              case 7:
                 response = _context4.sent;
                 orderbook = response['data'];
                 return _context4.abrupt("return", this.parseOrderBook(orderbook, undefined, 'BUY', 'SELL'));
 
-              case 9:
+              case 10:
               case "end":
                 return _context4.stop();
             }
@@ -523,6 +527,7 @@ function (_Exchange) {
             market,
             request,
             response,
+            order,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
@@ -536,7 +541,7 @@ function (_Exchange) {
                   break;
                 }
 
-                throw new ExchangeError(this.id + ' fetchOrder requires a symbol argument');
+                throw new ExchangeError(this.id + ' fetchOrder requires a symbol');
 
               case 4:
                 orderType = this.safeValue(params, 'type');
@@ -546,7 +551,7 @@ function (_Exchange) {
                   break;
                 }
 
-                throw new ExchangeError(this.id + ' fetchOrder requires a type param');
+                throw new ExchangeError(this.id + ' fetchOrder requires parameter type=["BUY"|"SELL"]');
 
               case 7:
                 _context5.next = 9;
@@ -564,9 +569,19 @@ function (_Exchange) {
 
               case 13:
                 response = _context5.sent;
+                order = response['data'];
+
+                if (order) {
+                  _context5.next = 17;
+                  break;
+                }
+
+                throw new OrderNotFound(this.id + ' ' + this.json(response));
+
+              case 17:
                 return _context5.abrupt("return", this.parseOrder(response['data'], market));
 
-              case 15:
+              case 18:
               case "end":
                 return _context5.stop();
             }
@@ -609,7 +624,7 @@ function (_Exchange) {
                   break;
                 }
 
-                throw new ExchangeError(this.id + ' fetchOpenOrders requires a symbol param');
+                throw new ExchangeError(this.id + ' fetchOpenOrders requires a symbol');
 
               case 6:
                 _context6.next = 8;
@@ -801,7 +816,7 @@ function (_Exchange) {
                   break;
                 }
 
-                throw new ExchangeError(this.id + ' cancelOrder requires symbol argument');
+                throw new ExchangeError(this.id + ' cancelOrder requires a symbol');
 
               case 4:
                 _context9.next = 6;
@@ -824,7 +839,7 @@ function (_Exchange) {
                 break;
 
               case 12:
-                throw new ExchangeError(this.id + ' cancelOrder requires type (BUY or SELL) param');
+                throw new ExchangeError(this.id + ' cancelOrder requires parameter type=["BUY"|"SELL"]');
 
               case 13:
                 _context9.next = 15;
@@ -1242,72 +1257,46 @@ function (_Exchange) {
   }, {
     key: "throwExceptionOnError",
     value: function throwExceptionOnError(response) {
-      if ('success' in response) {
-        if (!response['success']) {
-          if ('code' in response) {
-            var message = this.safeString(response, 'msg');
+      // { success: false, code: "ERROR", msg: "Min price:100.0" }
+      // { success: true,  code: "OK",    msg: "Operation succeeded." }
+      if (!('success' in response)) throw new ExchangeError(this.id + ': malformed response: ' + this.json(response));
+      if (response['success'] === true) return; // not an error
 
-            if (response['code'] === 'UNAUTH') {
-              if (message === 'Invalid nonce') throw new InvalidNonce(this.id + ' ' + message);
-              throw new AuthenticationError(this.id + ' ' + this.json(response));
-            } else if (response['code'] === 'ERROR') {
-              if (message.indexOf('precision of amount') >= 0) throw new InvalidOrder(this.id + ' ' + message);
-              if (message.indexOf('Min amount each order') >= 0) throw new InvalidOrder(this.id + ' ' + message);
-            }
-          }
-        }
+      if (!('code' in response) || !('msg' in response)) throw new ExchangeError(this.id + ': malformed response: ' + this.json(response));
+      var code = this.safeString(response, 'code');
+      var message = this.safeString(response, 'msg');
+      var feedback = this.id + ' ' + this.json(response);
+
+      if (code === 'UNAUTH') {
+        if (message === 'Invalid nonce') throw new InvalidNonce(feedback);
+        throw new AuthenticationError(feedback);
+      } else if (code === 'ERROR') {
+        if (message.indexOf('The precision of amount') >= 0) throw new InvalidOrder(feedback); // amount violates precision.amount
+
+        if (message.indexOf('Min amount each order') >= 0) throw new InvalidOrder(feedback); // amount < limits.amount.min
+
+        if (message.indexOf('Min price:') >= 0) throw new InvalidOrder(feedback); // price < limits.price.min
+
+        if (message.indexOf('The precision of price') >= 0) throw new InvalidOrder(feedback); // price violates precision.price
+      } else if (code === 'NO_BALANCE') {
+        if (message.indexOf('Insufficient balance') >= 0) throw new InsufficientFunds(feedback);
       }
+
+      throw new ExchangeError(this.id + ': unknown response: ' + this.json(response));
     }
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (body && body[0] === '{') {
-        var response = JSON.parse(body);
+      var response = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : undefined;
+
+      if (typeof response !== 'undefined') {
+        // JS callchain parses body beforehand
         this.throwExceptionOnError(response);
+      } else if (body && body[0] === '{') {
+        // Python/PHP callchains don't have json available at this step
+        this.throwExceptionOnError(JSON.parse(body));
       }
     }
-  }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee15(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args15 = arguments;
-        return _regeneratorRuntime.wrap(function _callee15$(_context15) {
-          while (1) {
-            switch (_context15.prev = _context15.next) {
-              case 0:
-                api = _args15.length > 1 && _args15[1] !== undefined ? _args15[1] : 'public';
-                method = _args15.length > 2 && _args15[2] !== undefined ? _args15[2] : 'GET';
-                params = _args15.length > 3 && _args15[3] !== undefined ? _args15[3] : {};
-                headers = _args15.length > 4 && _args15[4] !== undefined ? _args15[4] : undefined;
-                body = _args15.length > 5 && _args15[5] !== undefined ? _args15[5] : undefined;
-                _context15.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
-
-              case 7:
-                response = _context15.sent;
-                this.throwExceptionOnError(response);
-                return _context15.abrupt("return", response);
-
-              case 10:
-              case "end":
-                return _context15.stop();
-            }
-          }
-        }, _callee15, this);
-      }));
-
-      return function request(_x14) {
-        return _request.apply(this, arguments);
-      };
-    }()
   }]);
 
   return kucoin;

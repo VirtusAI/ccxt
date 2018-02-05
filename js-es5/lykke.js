@@ -623,8 +623,8 @@ function (_Exchange) {
     value: function () {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee10() {
-        var symbol,
+      _regeneratorRuntime.mark(function _callee10(symbol) {
+        var limit,
             params,
             response,
             orderbook,
@@ -638,8 +638,8 @@ function (_Exchange) {
           while (1) {
             switch (_context10.prev = _context10.next) {
               case 0:
-                symbol = _args10.length > 0 && _args10[0] !== undefined ? _args10[0] : undefined;
-                params = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : {};
+                limit = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : undefined;
+                params = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : {};
                 _context10.next = 4;
                 return this.loadMarkets();
 
@@ -687,7 +687,7 @@ function (_Exchange) {
         }, _callee10, this);
       }));
 
-      return function fetchOrderBook() {
+      return function fetchOrderBook(_x8) {
         return _fetchOrderBook.apply(this, arguments);
       };
     }()

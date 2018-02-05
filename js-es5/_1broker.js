@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -154,7 +154,7 @@ function (_Exchange) {
                   base = undefined;
                   quote = undefined;
 
-                  if (category == 'FOREX' || category == 'CRYPTO') {
+                  if (category === 'FOREX' || category === 'CRYPTO') {
                     symbol = market['name'];
                     parts = symbol.split('/');
                     base = parts[0];
@@ -259,7 +259,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee4(symbol) {
-        var params,
+        var limit,
+            params,
             response,
             orderbook,
             timestamp,
@@ -272,17 +273,18 @@ function (_Exchange) {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
-                params = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : {};
-                _context4.next = 3;
+                limit = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : undefined;
+                params = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : {};
+                _context4.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context4.next = 5;
+              case 4:
+                _context4.next = 6;
                 return this.privateGetMarketQuotes(this.extend({
                   'symbols': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 response = _context4.sent;
                 orderbook = response['response'][0];
                 timestamp = this.parse8601(orderbook['updated']);
@@ -297,7 +299,7 @@ function (_Exchange) {
                   'asks': [ask]
                 });
 
-              case 13:
+              case 14:
               case "end":
                 return _context4.stop();
             }
@@ -489,11 +491,11 @@ function (_Exchange) {
                 order = {
                   'symbol': this.marketId(symbol),
                   'margin': amount,
-                  'direction': side == 'sell' ? 'short' : 'long',
+                  'direction': side === 'sell' ? 'short' : 'long',
                   'leverage': 1,
                   'type': side
                 };
-                if (type == 'limit') order['price'] = price;else order['type'] += '_market';
+                if (type === 'limit') order['price'] = price;else order['type'] += '_market';
                 _context8.next = 8;
                 return this.privateGetOrderCreate(this.extend(order, params));
 

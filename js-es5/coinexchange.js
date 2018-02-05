@@ -556,7 +556,13 @@ function (_Exchange) {
   }, {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
-      if (currency === 'HNC') return 'Huncoin';
+      var substitutions = {
+        'BON': 'BonPeKaO',
+        'ETN': 'Ethernex',
+        'HNC': 'Huncoin',
+        'MARS': 'MarsBux'
+      };
+      if (currency in substitutions) return substitutions[currency];
       return currency;
     }
   }, {
@@ -827,28 +833,30 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee5(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
-                params = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : {};
-                _context5.next = 3;
+                limit = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
+                params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
+                _context5.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context5.next = 5;
+              case 4:
+                _context5.next = 6;
                 return this.publicGetGetorderbook(this.extend({
                   'market_id': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context5.sent;
                 return _context5.abrupt("return", this.parseOrderBook(orderbook['result'], undefined, 'BuyOrders', 'SellOrders', 'Price', 'Quantity'));
 
-              case 7:
+              case 8:
               case "end":
                 return _context5.stop();
             }

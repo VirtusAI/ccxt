@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -234,7 +234,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             orderbook,
             timestamp,
@@ -243,23 +244,24 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context2.next = 6;
+                _context2.next = 7;
                 return this.publicGetMarketIdOrderbook(this.extend({
                   'id': market['id']
                 }, params));
 
-              case 6:
+              case 7:
                 orderbook = _context2.sent;
                 timestamp = orderbook['timestamp'] * 1000;
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, timestamp));
 
-              case 9:
+              case 10:
               case "end":
                 return _context2.stop();
             }
@@ -431,7 +433,7 @@ function (_Exchange) {
                 multiplier = 100000000; // for price and volume
                 // does BTC Markets support market orders at all?
 
-                orderSide = side == 'buy' ? 'Bid' : 'Ask';
+                orderSide = side === 'buy' ? 'Bid' : 'Ask';
                 order = this.ordered({
                   'currency': market['quote']
                 });
@@ -545,9 +547,9 @@ function (_Exchange) {
     value: function parseMyTrade(trade, market) {
       var multiplier = 100000000;
       var timestamp = trade['creationTime'];
-      var side = trade['side'] == 'Bid' ? 'buy' : 'sell'; // BTCMarkets always charge in AUD for AUD-related transactions.
+      var side = trade['side'] === 'Bid' ? 'buy' : 'sell'; // BTCMarkets always charge in AUD for AUD-related transactions.
 
-      var currency = market['quote'] == 'AUD' ? market['quote'] : market['base'];
+      var currency = market['quote'] === 'AUD' ? market['quote'] : market['base'];
       return {
         'info': trade,
         'id': trade['id'].toString(),
@@ -585,19 +587,19 @@ function (_Exchange) {
     value: function parseOrder(order) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var multiplier = 100000000;
-      var side = order['orderSide'] == 'Bid' ? 'buy' : 'sell';
-      var type = order['ordertype'] == 'Limit' ? 'limit' : 'market';
+      var side = order['orderSide'] === 'Bid' ? 'buy' : 'sell';
+      var type = order['ordertype'] === 'Limit' ? 'limit' : 'market';
       var timestamp = order['creationTime'];
 
       if (!market) {
-        market = this.market(order['instrument'] + "/" + order['currency']);
+        market = this.market(order['instrument'] + '/' + order['currency']);
       }
 
       var status = 'open';
 
-      if (order['status'] == 'Failed' || order['status'] == 'Cancelled' || order['status'] == 'Partially Cancelled' || order['status'] == 'Error') {
+      if (order['status'] === 'Failed' || order['status'] === 'Cancelled' || order['status'] === 'Partially Cancelled' || order['status'] === 'Error') {
         status = 'canceled';
-      } else if (order['status'] == "Fully Matched" || order['status'] == "Partially Matched") {
+      } else if (order['status'] === 'Fully Matched' || order['status'] === 'Partially Matched') {
         status = 'closed';
       }
 
@@ -941,7 +943,7 @@ function (_Exchange) {
       var uri = '/' + this.implodeParams(path, params);
       var url = this.urls['api'] + uri;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(params).length) url += '?' + this.urlencode(params);
       } else {
         this.checkRequiredCredentials();
@@ -953,7 +955,7 @@ function (_Exchange) {
           'timestamp': nonce
         };
 
-        if (method == 'POST') {
+        if (method === 'POST') {
           body = this.json(params);
           auth += body;
         }
@@ -998,7 +1000,7 @@ function (_Exchange) {
               case 7:
                 response = _context14.sent;
 
-                if (!(api == 'private')) {
+                if (!(api === 'private')) {
                   _context14.next = 13;
                   break;
                 }

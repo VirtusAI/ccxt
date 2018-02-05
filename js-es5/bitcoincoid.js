@@ -21,7 +21,11 @@ var _inherits = require("@babel/runtime/helpers/inherits");
 var Exchange = require('./base/Exchange');
 
 var _require = require('./base/errors'),
-    ExchangeError = _require.ExchangeError; //  ---------------------------------------------------------------------------
+    ExchangeError = _require.ExchangeError,
+    InsufficientFunds = _require.InsufficientFunds,
+    InvalidOrder = _require.InvalidOrder,
+    OrderNotFound = _require.OrderNotFound,
+    AuthenticationError = _require.AuthenticationError; //  ---------------------------------------------------------------------------
 
 
 module.exports =
@@ -65,7 +69,7 @@ function (_Exchange) {
             'private': 'https://vip.bitcoin.co.id/tapi'
           },
           'www': 'https://www.bitcoin.co.id',
-          'doc': ['https://vip.bitcoin.co.id/downloads/BITCOINCOID-API-DOCUMENTATION.pdf', 'https://vip.bitcoin.co.id/trade_api']
+          'doc': ['https://vip.bitcoin.co.id/downloads/BITCOINCOID-API-DOCUMENTATION.pdf']
         },
         'api': {
           'public': {
@@ -449,28 +453,30 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args2 = arguments;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context2.next = 5;
+              case 4:
+                _context2.next = 6;
                 return this.publicGetPairDepth(this.extend({
                   'pair': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context2.sent;
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, undefined, 'buy', 'sell'));
 
-              case 7:
+              case 8:
               case "end":
                 return _context2.stop();
             }
@@ -753,6 +759,7 @@ function (_Exchange) {
             market,
             request,
             response,
+            raw,
             orders,
             _args6 = arguments;
         return _regeneratorRuntime.wrap(function _callee6$(_context6) {
@@ -763,32 +770,38 @@ function (_Exchange) {
                 since = _args6.length > 1 && _args6[1] !== undefined ? _args6[1] : undefined;
                 limit = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : undefined;
                 params = _args6.length > 3 && _args6[3] !== undefined ? _args6[3] : {};
+                _context6.next = 6;
+                return this.loadMarkets();
+
+              case 6:
+                market = undefined;
+                request = {};
 
                 if (symbol) {
-                  _context6.next = 6;
+                  market = this.market(symbol);
+                  request['pair'] = market['id'];
+                }
+
+                _context6.next = 11;
+                return this.privatePostOpenOrders(this.extend(request, params));
+
+              case 11:
+                response = _context6.sent;
+                // { success: 1, return: { orders: null }}
+                raw = response['return']['orders'];
+
+                if (raw) {
+                  _context6.next = 15;
                   break;
                 }
 
-                throw new ExchangeError(this.id + ' fetchOpenOrders requires a symbol');
-
-              case 6:
-                _context6.next = 8;
-                return this.loadMarkets();
-
-              case 8:
-                market = this.market(symbol);
-                request = {
-                  'pair': market['id']
-                };
-                _context6.next = 12;
-                return this.privatePostOpenOrders(this.extend(request, params));
-
-              case 12:
-                response = _context6.sent;
-                orders = this.parseOrders(response['return']['orders'], market, since, limit);
-                return _context6.abrupt("return", this.filterOrdersBySymbol(orders, symbol));
+                return _context6.abrupt("return", []);
 
               case 15:
+                orders = this.parseOrders(raw, market, since, limit);
+                return _context6.abrupt("return", this.filterOrdersBySymbol(orders, symbol));
+
+              case 17:
               case "end":
                 return _context6.stop();
             }
@@ -1039,55 +1052,37 @@ function (_Exchange) {
       };
     }
   }, {
-    key: "request",
-    value: function () {
-      var _request = _asyncToGenerator(
-      /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee10(path) {
-        var api,
-            method,
-            params,
-            headers,
-            body,
-            response,
-            _args10 = arguments;
-        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
-          while (1) {
-            switch (_context10.prev = _context10.next) {
-              case 0:
-                api = _args10.length > 1 && _args10[1] !== undefined ? _args10[1] : 'public';
-                method = _args10.length > 2 && _args10[2] !== undefined ? _args10[2] : 'GET';
-                params = _args10.length > 3 && _args10[3] !== undefined ? _args10[3] : {};
-                headers = _args10.length > 4 && _args10[4] !== undefined ? _args10[4] : undefined;
-                body = _args10.length > 5 && _args10[5] !== undefined ? _args10[5] : undefined;
-                _context10.next = 7;
-                return this.fetch2(path, api, method, params, headers, body);
+    key: "handleErrors",
+    value: function handleErrors(code, reason, url, method, headers, body) {
+      var response = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : undefined;
+      // { success: 0, error: "invalid order." }
+      if (typeof response === 'undefined') if (body[0] === '{') response = JSON.parse(body);
+      if (!('success' in response)) return; // no 'success' property on public responses
 
-              case 7:
-                response = _context10.sent;
+      if (response['success'] === 1) {
+        // { success: 1, return: { orders: [] }}
+        if (!('return' in response)) throw new ExchangeError(this.id + ': malformed response: ' + this.json(response));else return;
+      }
 
-                if (!('error' in response)) {
-                  _context10.next = 10;
-                  break;
-                }
+      var message = response['error'];
+      var feedback = this.id + ' ' + this.json(response);
 
-                throw new ExchangeError(this.id + ' ' + response['error']);
+      if (message === 'Insufficient balance.') {
+        throw new InsufficientFunds(feedback);
+      } else if (message === 'invalid order.') {
+        throw new OrderNotFound(feedback); // cancelOrder(1)
+      } else if (message.indexOf('Minimum price ') >= 0) {
+        throw new InvalidOrder(feedback); // price < limits.price.min, on createLimitBuyOrder ('ETH/BTC', 1, 0)
+      } else if (message.indexOf('Minimum order ') >= 0) {
+        throw new InvalidOrder(feedback); // cost < limits.cost.min on createLimitBuyOrder ('ETH/BTC', 0, 1)
+      } else if (message === 'Invalid credentials. API not found or session has expired.') {
+        throw new AuthenticationError(feedback); // on bad apiKey
+      } else if (message === 'Invalid credentials. Bad sign.') {
+        throw new AuthenticationError(feedback); // on bad secret
+      }
 
-              case 10:
-                return _context10.abrupt("return", response);
-
-              case 11:
-              case "end":
-                return _context10.stop();
-            }
-          }
-        }, _callee10, this);
-      }));
-
-      return function request(_x10) {
-        return _request.apply(this, arguments);
-      };
-    }()
+      throw new ExchangeError(this.id + ': unknown error: ' + this.json(response));
+    }
   }]);
 
   return bitcoincoid;

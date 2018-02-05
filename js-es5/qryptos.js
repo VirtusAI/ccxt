@@ -207,28 +207,30 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context3.next = 5;
+              case 4:
+                _context3.next = 6;
                 return this.publicGetProductsIdPriceLevels(this.extend({
                   'id': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context3.sent;
                 return _context3.abrupt("return", this.parseOrderBook(orderbook, undefined, 'buy_price_levels', 'sell_price_levels'));
 
-              case 7:
+              case 8:
               case "end":
                 return _context3.stop();
             }
@@ -774,7 +776,7 @@ function (_Exchange) {
     value: function handleErrors(code, reason, url, method, headers, body) {
       var response = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : undefined;
       if (code >= 200 && code <= 299) return;
-      var messages = this.exceptions.messages;
+      var messages = this.exceptions['messages'];
 
       if (code === 401) {
         // expected non-json response

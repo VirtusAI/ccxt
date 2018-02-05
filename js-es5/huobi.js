@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -164,7 +164,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             method,
             orderbook,
@@ -173,19 +174,20 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
                 market = this.market(symbol);
                 method = market['type'] + 'GetDepthId';
-                _context2.next = 5;
+                _context2.next = 6;
                 return this[method](this.extend({
                   'id': market['id']
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context2.sent;
                 return _context2.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 7:
+              case 8:
               case "end":
                 return _context2.stop();
             }
@@ -401,7 +403,7 @@ function (_Exchange) {
                   'amount': amount,
                   'market': market['quote'].toLowerCase()
                 };
-                if (type == 'limit') order['price'] = price;else method += this.capitalize(type);
+                if (type === 'limit') order['price'] = price;else method += this.capitalize(type);
                 response = this[method](this.extend(order, params));
                 return _context6.abrupt("return", {
                   'info': response,
@@ -465,7 +467,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'];
 
-      if (api == 'trade') {
+      if (api === 'trade') {
         this.checkRequiredCredentials();
         url += '/api' + this.version;
         var query = this.keysort(this.extend({
@@ -529,7 +531,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['status'] == 'error')) {
+                if (!(response['status'] === 'error')) {
                   _context8.next = 11;
                   break;
                 }

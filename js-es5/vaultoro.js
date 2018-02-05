@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -179,7 +179,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             response,
             orderbook,
             result,
@@ -188,15 +189,16 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context3.next = 5;
+              case 4:
+                _context3.next = 6;
                 return this.publicGetOrderbook(params);
 
-              case 5:
+              case 6:
                 response = _context3.sent;
                 orderbook = {
                   'bids': response['data'][0]['b'],
@@ -206,7 +208,7 @@ function (_Exchange) {
                 result['bids'] = this.sortBy(result['bids'], 0, true);
                 return _context3.abrupt("return", result);
 
-              case 10:
+              case 11:
               case "end":
                 return _context3.stop();
             }
@@ -450,7 +452,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/';
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += path;
       } else {
         this.checkRequiredCredentials();

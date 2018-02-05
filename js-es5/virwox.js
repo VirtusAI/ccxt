@@ -232,7 +232,9 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee4(symbol) {
-        var params,
+        var limit,
+            params,
+            request,
             response,
             orderbook,
             _args4 = arguments;
@@ -240,24 +242,31 @@ function (_Exchange) {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
-                params = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : {};
-                _context4.next = 3;
+                limit = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : undefined;
+                params = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : {};
+                _context4.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context4.next = 5;
-                return this.publicPostGetMarketDepth(this.extend({
-                  'symbols': [symbol],
-                  'buyDepth': 100,
-                  'sellDepth': 100
-                }, params));
+              case 4:
+                request = {
+                  'symbols': [symbol]
+                };
 
-              case 5:
+                if (typeof limit !== 'undefined') {
+                  request['buyDepth'] = limit; // 100
+
+                  request['sellDepth'] = limit; // 100
+                }
+
+                _context4.next = 8;
+                return this.publicPostGetMarketDepth(this.extend(request, params));
+
+              case 8:
                 response = _context4.sent;
                 orderbook = response['result'][0];
                 return _context4.abrupt("return", this.parseOrderBook(orderbook, undefined, 'buy', 'sell', 'price', 'volume'));
 
-              case 8:
+              case 11:
               case "end":
                 return _context4.stop();
             }
@@ -301,8 +310,8 @@ function (_Exchange) {
                 _context5.next = 7;
                 return this.publicGetGetTradedPriceVolume(this.extend({
                   'instrument': symbol,
-                  'endDate': this.YmdHMS(end),
-                  'startDate': this.YmdHMS(start),
+                  'endDate': this.ymdhms(end),
+                  'startDate': this.ymdhms(start),
                   'HLOC': 1
                 }, params));
 

@@ -384,29 +384,34 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee5(symbol) {
-        var params,
+        var limit,
+            params,
+            request,
             orderbook,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
-                params = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : {};
-                _context5.next = 3;
+                limit = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
+                params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
+                _context5.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context5.next = 5;
-                return this.publicGetReturnOrderBook(this.extend({
-                  'currencyPair': this.marketId(symbol) // 'depth': 100,
+              case 4:
+                request = {
+                  'currencyPair': this.marketId(symbol)
+                };
+                if (typeof limit !== 'undefined') request['depth'] = limit; // 100
 
-                }, params));
+                _context5.next = 8;
+                return this.publicGetReturnOrderBook(this.extend(request, params));
 
-              case 5:
+              case 8:
                 orderbook = _context5.sent;
                 return _context5.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 7:
+              case 10:
               case "end":
                 return _context5.stop();
             }
@@ -1666,22 +1671,22 @@ function (_Exchange) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code >= 400) {
-        if (body[0] === '{') {
-          var response = JSON.parse(body);
+      if (body[0] === '{') {
+        var response = JSON.parse(body);
 
-          if ('error' in response) {
-            var error = this.id + ' ' + body;
+        if ('error' in response) {
+          var error = this.id + ' ' + body;
 
-            if (response['error'].indexOf('Total must be at least') >= 0) {
-              throw new InvalidOrder(error);
-            } else if (response['error'].indexOf('Not enough') >= 0) {
-              throw new InsufficientFunds(error);
-            } else if (response['error'].indexOf('Nonce must be greater') >= 0) {
-              throw new ExchangeNotAvailable(error);
-            } else if (response['error'].indexOf('You have already called cancelOrder or moveOrder on this order.') >= 0) {
-              throw new CancelPending(error);
-            }
+          if (response['error'] === 'Invalid order number, or you are not the person who placed the order.') {
+            throw new OrderNotFound(error);
+          } else if (response['error'].indexOf('Total must be at least') >= 0) {
+            throw new InvalidOrder(error);
+          } else if (response['error'].indexOf('Not enough') >= 0) {
+            throw new InsufficientFunds(error);
+          } else if (response['error'].indexOf('Nonce must be greater') >= 0) {
+            throw new ExchangeNotAvailable(error);
+          } else if (response['error'].indexOf('You have already called cancelOrder or moveOrder on this order.') >= 0) {
+            throw new CancelPending(error);
           }
         }
       }

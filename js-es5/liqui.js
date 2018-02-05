@@ -316,8 +316,10 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
+            request,
             response,
             market_id_in_reponse,
             orderbook,
@@ -327,37 +329,40 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context3.next = 6;
-                return this.publicGetDepthPair(this.extend({
-                  'pair': market['id'] // 'limit': 150, // default = 150, max = 2000
+                request = {
+                  'pair': market['id']
+                };
+                if (typeof limit !== 'undefined') request['limit'] = limit; // default = 150, max = 2000
 
-                }, params));
+                _context3.next = 9;
+                return this.publicGetDepthPair(this.extend(request, params));
 
-              case 6:
+              case 9:
                 response = _context3.sent;
                 market_id_in_reponse = market['id'] in response;
 
                 if (market_id_in_reponse) {
-                  _context3.next = 10;
+                  _context3.next = 13;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + market['symbol'] + ' order book is empty or not available');
 
-              case 10:
+              case 13:
                 orderbook = response[market['id']];
                 result = this.parseOrderBook(orderbook);
                 result['bids'] = this.sortBy(result['bids'], 0, true);
                 result['asks'] = this.sortBy(result['asks'], 0);
                 return _context3.abrupt("return", result);
 
-              case 15:
+              case 18:
               case "end":
                 return _context3.stop();
             }

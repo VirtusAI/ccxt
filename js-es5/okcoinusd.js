@@ -59,7 +59,7 @@ function (_Exchange) {
           'fetchOpenOrders': true,
           'fetchClosedOrders': true,
           'withdraw': true,
-          'futureMarkets': false
+          'futures': false
         },
         'extension': '.do',
         // appended to endpoint URL
@@ -190,7 +190,7 @@ function (_Exchange) {
                   });
                   result.push(market);
 
-                  if (this.has['futureMarkets'] && market['quote'] === 'USDT') {
+                  if (this.has['futures'] && market['quote'] === 'USDT') {
                     result.push(this.extend(market, {
                       'quote': 'USD',
                       'symbol': market['base'] + '/USD',
@@ -222,7 +222,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             method,
             request,
@@ -233,16 +234,18 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
                 method = 'publicGet';
                 request = {
                   'symbol': market['id']
                 };
+                if (typeof limit !== 'undefined') request['size'] = limit;
 
                 if (market['future']) {
                   method += 'Future';
@@ -250,10 +253,10 @@ function (_Exchange) {
                 }
 
                 method += 'Depth';
-                _context2.next = 10;
+                _context2.next = 12;
                 return this[method](this.extend(request, params));
 
-              case 10:
+              case 12:
                 orderbook = _context2.sent;
                 timestamp = this.milliseconds();
                 return _context2.abrupt("return", {
@@ -263,7 +266,7 @@ function (_Exchange) {
                   'datetime': this.iso8601(timestamp)
                 });
 
-              case 13:
+              case 15:
               case "end":
                 return _context2.stop();
             }

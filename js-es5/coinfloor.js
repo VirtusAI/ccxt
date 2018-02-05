@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -118,24 +118,26 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args = arguments;
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
-                _context.next = 3;
+                limit = _args.length > 1 && _args[1] !== undefined ? _args[1] : undefined;
+                params = _args.length > 2 && _args[2] !== undefined ? _args[2] : {};
+                _context.next = 4;
                 return this.publicGetIdOrderBook(this.extend({
                   'id': this.marketId(symbol)
                 }, params));
 
-              case 3:
+              case 4:
                 orderbook = _context.sent;
                 return _context.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 5:
+              case 6:
               case "end":
                 return _context.stop();
             }
@@ -301,7 +303,7 @@ function (_Exchange) {
                 };
                 method = 'privatePostId' + this.capitalize(side);
 
-                if (type == 'market') {
+                if (type === 'market') {
                   order['quantity'] = amount;
                   method += 'Market';
                 } else {
@@ -370,7 +372,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();

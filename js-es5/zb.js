@@ -118,61 +118,12 @@ function (_Exchange) {
               'BCW': 0
             }
           },
-          'trading': {}
+          'trading': {
+            'maker': 0.2 / 100,
+            'taker': 0.2 / 100
+          }
         }
       });
-    }
-  }, {
-    key: "getTradingFeeFromBaseQuote",
-    value: function getTradingFeeFromBaseQuote(base, quote) {
-      // base: quote
-      var fees = {
-        'BTC': {
-          'USDT': 0.0
-        },
-        'BCH': {
-          'BTC': 0.001,
-          'USDT': 0.001
-        },
-        'LTC': {
-          'BTC': 0.001,
-          'USDT': 0.0
-        },
-        'ETH': {
-          'BTC': 0.001,
-          'USDT': 0.0
-        },
-        'ETC': {
-          'BTC': 0.001,
-          'USDT': 0.0
-        },
-        'BTS': {
-          'BTC': 0.001,
-          'USDT': 0.001
-        },
-        'EOS': {
-          'BTC': 0.001,
-          'USDT': 0.001
-        },
-        'HSR': {
-          'BTC': 0.001,
-          'USDT': 0.001
-        },
-        'QTUM': {
-          'BTC': 0.001,
-          'USDT': 0.001
-        },
-        'USDT': {
-          'BTC': 0.0
-        }
-      };
-
-      if (base in fees) {
-        var quoteFees = fees[base];
-        if (quote in quoteFees) return quoteFees[quote];
-      }
-
-      return undefined;
     }
   }, {
     key: "fetchMarkets",
@@ -180,7 +131,7 @@ function (_Exchange) {
       var _fetchMarkets = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee() {
-        var markets, keys, result, i, id, market, _id$split, _id$split2, baseId, quoteId, base, quote, symbol, fee, precision, lot;
+        var markets, keys, result, i, id, market, _id$split, _id$split2, baseId, quoteId, base, quote, symbol, precision, lot;
 
         return _regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -201,7 +152,6 @@ function (_Exchange) {
                   base = this.commonCurrencyCode(baseId.toUpperCase());
                   quote = this.commonCurrencyCode(quoteId.toUpperCase());
                   symbol = base + '/' + quote;
-                  fee = this.getTradingFeeFromBaseQuote(base, quote);
                   precision = {
                     'amount': market['amountScale'],
                     'price': market['priceScale']
@@ -214,9 +164,6 @@ function (_Exchange) {
                     'quoteId': quoteId,
                     'base': base,
                     'quote': quote,
-                    'info': market,
-                    'maker': fee,
-                    'taker': fee,
                     'lot': lot,
                     'active': true,
                     'precision': precision,
@@ -233,7 +180,8 @@ function (_Exchange) {
                         'min': 0,
                         'max': undefined
                       }
-                    }
+                    },
+                    'info': market
                   });
                 }
 
@@ -321,7 +269,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             marketFieldName,
             request,
@@ -335,19 +284,20 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
                 marketFieldName = this.getMarketFieldName();
                 request = {};
                 request[marketFieldName] = market['id'];
-                _context3.next = 9;
+                _context3.next = 10;
                 return this.publicGetDepth(this.extend(request, params));
 
-              case 9:
+              case 10:
                 orderbook = _context3.sent;
                 timestamp = this.milliseconds();
                 bids = undefined;
@@ -364,7 +314,7 @@ function (_Exchange) {
                 if (result['asks']) result['asks'] = this.sortBy(result['asks'], 0);
                 return _context3.abrupt("return", result);
 
-              case 19:
+              case 20:
               case "end":
                 return _context3.stop();
             }

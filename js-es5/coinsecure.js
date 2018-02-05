@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -144,7 +144,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             bids,
             asks,
             orderbook,
@@ -153,16 +154,17 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.publicGetExchangeBidOrders(params);
 
-              case 3:
+              case 4:
                 bids = _context2.sent;
-                _context2.next = 6;
+                _context2.next = 7;
                 return this.publicGetExchangeAskOrders(params);
 
-              case 6:
+              case 7:
                 asks = _context2.sent;
                 orderbook = {
                   'bids': bids['message'],
@@ -170,7 +172,7 @@ function (_Exchange) {
                 };
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, undefined, 'bids', 'asks', 'rate', 'vol'));
 
-              case 9:
+              case 10:
               case "end":
                 return _context2.stop();
             }
@@ -211,7 +213,7 @@ function (_Exchange) {
                 timestamp = ticker['timestamp'];
                 baseVolume = parseFloat(ticker['coinvolume']);
 
-                if (symbol == 'BTC/INR') {
+                if (symbol === 'BTC/INR') {
                   satoshi = 0.00000001;
                   baseVolume = baseVolume * satoshi;
                 }
@@ -256,7 +258,7 @@ function (_Exchange) {
     value: function parseTrade(trade) {
       var symbol = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var timestamp = trade['time'];
-      var side = trade['ordType'] == 'bid' ? 'buy' : 'sell';
+      var side = trade['ordType'] === 'bid' ? 'buy' : 'sell';
       return {
         'id': undefined,
         'timestamp': timestamp,
@@ -338,11 +340,11 @@ function (_Exchange) {
                 method = 'privatePutUserExchange';
                 order = {};
 
-                if (type == 'market') {
+                if (type === 'market') {
                   method += 'Instant' + this.capitalize(side);
-                  if (side == 'buy') order['maxFiat'] = amount;else order['maxVol'] = amount;
+                  if (side === 'buy') order['maxFiat'] = amount;else order['maxVol'] = amount;
                 } else {
-                  direction = side == 'buy' ? 'Bid' : 'Ask';
+                  direction = side === 'buy' ? 'Bid' : 'Ask';
                   method += direction + 'New';
                   order['rate'] = price;
                   order['vol'] = amount;
@@ -378,7 +380,6 @@ function (_Exchange) {
       _regeneratorRuntime.mark(function _callee6(id) {
         var symbol,
             params,
-            method,
             _args6 = arguments;
         return _regeneratorRuntime.wrap(function _callee6$(_context6) {
           while (1) {
@@ -388,10 +389,7 @@ function (_Exchange) {
                 params = _args6.length > 2 && _args6[2] !== undefined ? _args6[2] : {};
                 throw new ExchangeError(this.id + ' cancelOrder () is not fully implemented yet');
 
-              case 6:
-                return _context6.abrupt("return", _context6.sent);
-
-              case 7:
+              case 3:
               case "end":
                 return _context6.stop();
             }
@@ -414,7 +412,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.version + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         headers = {
           'Authorization': this.apiKey
@@ -436,8 +434,8 @@ function (_Exchange) {
   }, {
     key: "handleErrors",
     value: function handleErrors(code, reason, url, method, headers, body) {
-      if (code == 200) {
-        if (body[0] == '{' || body[0] == '[') {
+      if (code === 200) {
+        if (body[0] === '{' || body[0] === '[') {
           var response = JSON.parse(body);
 
           if ('success' in response) {

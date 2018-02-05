@@ -308,7 +308,8 @@ function (_acx) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             orderBook,
             _args = arguments;
@@ -316,18 +317,19 @@ function (_acx) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
+                limit = _args.length > 1 && _args[1] !== undefined ? _args[1] : undefined;
+                params = _args.length > 2 && _args[2] !== undefined ? _args[2] : {};
                 market = this.market(symbol);
-                _context.next = 4;
+                _context.next = 5;
                 return this.publicGetOrderBook(this.extend({
                   'market': market['id']
                 }, params));
 
-              case 4:
+              case 5:
                 orderBook = _context.sent;
                 return _context.abrupt("return", this.parseOrderBook(orderBook, undefined, 'bids', 'asks', 'price', 'remaining_volume'));
 
-              case 6:
+              case 7:
               case "end":
                 return _context.stop();
             }
@@ -344,14 +346,19 @@ function (_acx) {
     value: function () {
       var _fetchL3OrderBook = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee2(symbol, params) {
+      _regeneratorRuntime.mark(function _callee2(symbol) {
+        var limit,
+            params,
+            _args2 = arguments;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                return _context2.abrupt("return", this.fetchOrderBook(symbol, params));
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                return _context2.abrupt("return", this.fetchOrderBook(symbol, limit, params));
 
-              case 1:
+              case 3:
               case "end":
                 return _context2.stop();
             }
@@ -359,7 +366,7 @@ function (_acx) {
         }, _callee2, this);
       }));
 
-      return function fetchL3OrderBook(_x2, _x3) {
+      return function fetchL3OrderBook(_x2) {
         return _fetchL3OrderBook.apply(this, arguments);
       };
     }()
@@ -471,7 +478,7 @@ function (_acx) {
         }, _callee4, this);
       }));
 
-      return function fetchTrades(_x4) {
+      return function fetchTrades(_x3) {
         return _fetchTrades.apply(this, arguments);
       };
     }()

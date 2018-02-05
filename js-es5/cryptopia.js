@@ -82,6 +82,7 @@ function (_Exchange) {
     value: function commonCurrencyCode(currency) {
       var currencies = {
         'ACC': 'AdCoin',
+        'BAT': 'BatCoin',
         'CC': 'CCX',
         'CMT': 'Comet',
         'FCN': 'Facilecoin',
@@ -100,6 +101,7 @@ function (_Exchange) {
     value: function currencyId(currency) {
       var currencies = {
         'AdCoin': 'ACC',
+        'BatCoin': 'BAT',
         'CCX': 'CC',
         'Comet': 'CMT',
         'Cubits': 'QBT',
@@ -196,7 +198,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             response,
             orderbook,
             _args2 = arguments;
@@ -204,22 +207,23 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context2.next = 5;
+              case 4:
+                _context2.next = 6;
                 return this.publicGetGetMarketOrdersId(this.extend({
                   'id': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 response = _context2.sent;
                 orderbook = response['Data'];
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, undefined, 'Buy', 'Sell', 'Price', 'Volume'));
 
-              case 8:
+              case 9:
               case "end":
                 return _context2.stop();
             }

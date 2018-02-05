@@ -488,9 +488,11 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee4(symbol) {
-        var params,
+        var limit,
+            params,
             darkpool,
             market,
+            request,
             response,
             orderbook,
             _args4 = arguments;
@@ -498,34 +500,37 @@ function (_Exchange) {
           while (1) {
             switch (_context4.prev = _context4.next) {
               case 0:
-                params = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : {};
-                _context4.next = 3;
+                limit = _args4.length > 1 && _args4[1] !== undefined ? _args4[1] : undefined;
+                params = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : {};
+                _context4.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 darkpool = symbol.indexOf('.d') >= 0;
 
                 if (!darkpool) {
-                  _context4.next = 6;
+                  _context4.next = 7;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' does not provide an order book for darkpool symbol ' + symbol);
 
-              case 6:
+              case 7:
                 market = this.market(symbol);
-                _context4.next = 9;
-                return this.publicGetDepth(this.extend({
-                  'pair': market['id'] // 'count': 100,
+                request = {
+                  'pair': market['id']
+                };
+                if (typeof limit !== 'undefined') request['count'] = limit; // 100
 
-                }, params));
+                _context4.next = 12;
+                return this.publicGetDepth(this.extend(request, params));
 
-              case 9:
+              case 12:
                 response = _context4.sent;
                 orderbook = response['result'][market['id']];
                 return _context4.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 12:
+              case 15:
               case "end":
                 return _context4.stop();
             }

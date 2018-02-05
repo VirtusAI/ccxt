@@ -137,7 +137,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             orderbook,
             _args = arguments;
@@ -145,19 +146,20 @@ function (_Exchange) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
+                limit = _args.length > 1 && _args[1] !== undefined ? _args[1] : undefined;
+                params = _args.length > 2 && _args[2] !== undefined ? _args[2] : {};
                 market = this.market(symbol);
-                _context.next = 4;
+                _context.next = 5;
                 return this.publicGetCurrencyOrderbook(this.extend({
                   'currency': market['quote'],
                   'crypto_currency': market['base']
                 }, params));
 
-              case 4:
+              case 5:
                 orderbook = _context.sent;
                 return _context.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 6:
+              case 7:
               case "end":
                 return _context.stop();
             }

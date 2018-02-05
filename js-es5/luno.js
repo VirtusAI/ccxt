@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -187,7 +187,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             timestamp,
             _args3 = arguments;
@@ -195,22 +196,23 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context3.next = 5;
+              case 4:
+                _context3.next = 6;
                 return this.publicGetOrderbook(this.extend({
                   'pair': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context3.sent;
                 timestamp = orderbook['timestamp'];
                 return _context3.abrupt("return", this.parseOrderBook(orderbook, timestamp, 'bids', 'asks', 'price', 'volume'));
 
-              case 8:
+              case 9:
               case "end":
                 return _context3.stop();
             }
@@ -227,8 +229,8 @@ function (_Exchange) {
     value: function parseOrder(order) {
       var market = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
       var timestamp = order['creation_timestamp'];
-      var status = order['state'] == 'PENDING' ? 'open' : 'closed';
-      var side = order['type'] == 'ASK' ? 'sell' : 'buy';
+      var status = order['state'] === 'PENDING' ? 'open' : 'closed';
+      var side = order['type'] === 'ASK' ? 'sell' : 'buy';
       var symbol = undefined;
       if (market) symbol = market['symbol'];
       var price = this.safeFloat(order, 'limit_price');
@@ -460,6 +462,7 @@ function (_Exchange) {
             limit,
             params,
             market,
+            request,
             response,
             _args7 = arguments;
         return _regeneratorRuntime.wrap(function _callee7$(_context7) {
@@ -474,16 +477,18 @@ function (_Exchange) {
 
               case 5:
                 market = this.market(symbol);
-                _context7.next = 8;
-                return this.publicGetTrades(this.extend({
+                request = {
                   'pair': market['id']
-                }, params));
+                };
+                if (typeof since !== 'undefined') request['since'] = since;
+                _context7.next = 10;
+                return this.publicGetTrades(this.extend(request, params));
 
-              case 8:
+              case 10:
                 response = _context7.sent;
                 return _context7.abrupt("return", this.parseTrades(response['trades'], market, since, limit));
 
-              case 10:
+              case 12:
               case "end":
                 return _context7.stop();
             }
@@ -522,15 +527,15 @@ function (_Exchange) {
                   'pair': this.marketId(market)
                 };
 
-                if (type == 'market') {
+                if (type === 'market') {
                   method += 'Marketorder';
                   order['type'] = side.toUpperCase();
-                  if (side == 'buy') order['counter_volume'] = amount;else order['base_volume'] = amount;
+                  if (side === 'buy') order['counter_volume'] = amount;else order['base_volume'] = amount;
                 } else {
                   method += 'Order';
                   order['volume'] = amount;
                   order['price'] = price;
-                  if (side == 'buy') order['type'] = 'BID';else order['type'] = 'ASK';
+                  if (side === 'buy') order['type'] = 'BID';else order['type'] = 'ASK';
                 }
 
                 _context8.next = 9;
@@ -606,7 +611,7 @@ function (_Exchange) {
       var query = this.omit(params, this.extractParams(path));
       if (_Object$keys(query).length) url += '?' + this.urlencode(query);
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var auth = this.encode(this.apiKey + ':' + this.secret);
         auth = this.stringToBase64(auth);
