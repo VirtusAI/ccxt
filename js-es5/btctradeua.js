@@ -259,7 +259,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             bids,
             asks,
@@ -269,21 +270,22 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
                 market = this.market(symbol);
-                _context2.next = 4;
+                _context2.next = 5;
                 return this.publicGetTradesBuySymbol(this.extend({
                   'symbol': market['id']
                 }, params));
 
-              case 4:
+              case 5:
                 bids = _context2.sent;
-                _context2.next = 7;
+                _context2.next = 8;
                 return this.publicGetTradesSellSymbol(this.extend({
                   'symbol': market['id']
                 }, params));
 
-              case 7:
+              case 8:
                 asks = _context2.sent;
                 orderbook = {
                   'bids': [],
@@ -300,7 +302,7 @@ function (_Exchange) {
 
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, undefined, 'bids', 'asks', 'price', 'currency_trade'));
 
-              case 12:
+              case 13:
               case "end":
                 return _context2.stop();
             }

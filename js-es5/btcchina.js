@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -237,7 +237,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             method,
             request,
@@ -249,25 +250,26 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
                 method = market['api'] + 'GetOrderbook';
                 request = this.createMarketRequest(market);
-                _context3.next = 8;
+                _context3.next = 9;
                 return this[method](this.extend(request, params));
 
-              case 8:
+              case 9:
                 orderbook = _context3.sent;
                 timestamp = orderbook['date'] * 1000;
                 result = this.parseOrderBook(orderbook, timestamp);
                 result['asks'] = this.sortBy(result['asks'], 0);
                 return _context3.abrupt("return", result);
 
-              case 13:
+              case 14:
               case "end":
                 return _context3.stop();
             }
@@ -523,7 +525,7 @@ function (_Exchange) {
                 order = {};
                 id = market['id'].toUpperCase();
 
-                if (type == 'market') {
+                if (type === 'market') {
                   order['params'] = [undefined, amount, id];
                 } else {
                   order['params'] = [price, amount, id];
@@ -608,7 +610,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'][api] + '/' + path;
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var p = [];
         if ('params' in params) p = params['params'];

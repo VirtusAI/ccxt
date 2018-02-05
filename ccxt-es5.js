@@ -37,7 +37,7 @@ var Exchange = require('./js-es5/base/Exchange'),
 // this is updated by vss.js when building
 
 
-var version = '1.10.954';
+var version = '1.10.1002';
 Exchange.ccxtVersion = version; //-----------------------------------------------------------------------------
 
 var exchanges = {
@@ -72,12 +72,12 @@ var exchanges = {
   'btctradeua': require('./js-es5/btctradeua.js'),
   'btcturk': require('./js-es5/btcturk.js'),
   'btcx': require('./js-es5/btcx.js'),
-  'bter': require('./js-es5/bter.js'),
   'bxinth': require('./js-es5/bxinth.js'),
   'ccex': require('./js-es5/ccex.js'),
   'cex': require('./js-es5/cex.js'),
   'chbtc': require('./js-es5/chbtc.js'),
   'chilebit': require('./js-es5/chilebit.js'),
+  'cobinhood': require('./js-es5/cobinhood.js'),
   'coincheck': require('./js-es5/coincheck.js'),
   'coinexchange': require('./js-es5/coinexchange.js'),
   'coinfloor': require('./js-es5/coinfloor.js'),

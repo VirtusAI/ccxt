@@ -98,9 +98,11 @@ function () {
           'createOrder': true,
           'deposit': false,
           'fetchBalance': true,
+          'fetchBidsAsks': false,
           'fetchClosedOrders': false,
           'fetchCurrencies': false,
           'fetchDepositAddress': false,
+          'fetchFundingFees': false,
           'fetchMarkets': true,
           'fetchMyTrades': false,
           'fetchOHLCV': false,
@@ -110,7 +112,6 @@ function () {
           'fetchOrders': false,
           'fetchTicker': true,
           'fetchTickers': false,
-          'fetchBidsAsks': false,
           'fetchTrades': true,
           'withdraw': false
         },
@@ -555,12 +556,14 @@ function () {
     }
   }, {
     key: "parseJson",
-    value: function parseJson(responseBody, url) {
-      var method = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'GET';
-
+    value: function parseJson(response, responseBody, url, method) {
       try {
         return responseBody.length > 0 ? JSON.parse(responseBody) : {}; // empty object for empty body
       } catch (e) {
+        if (this.verbose) console.log('parseJson:\n', this.id, method, url, response.status, 'error', e, "response body:\n'" + responseBody + "'\n");
+        var title = undefined;
+        var match = responseBody.match(/<title>([^<]+)/i);
+        if (match) title = match[1].trim();
         var maintenance = responseBody.match(/offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing/i);
         var ddosProtection = responseBody.match(/cloudflare|incapsula|overload/i);
 
@@ -569,10 +572,9 @@ function () {
           var details = 'not accessible from this location at the moment';
           if (maintenance) details = 'offline, on maintenance or unreachable from this location at the moment';
           if (ddosProtection) error = DDoSProtection;
-          throw new error([this.id, method, url, details].join(' '));
+          throw new error([this.id, method, url, response.status, title, details].join(' '));
         }
 
-        if (this.verbose) console.log('parseJson:\n', this.id, method, url, 'error', e, "response body:\n'" + responseBody + "'\n");
         throw e;
       }
     }
@@ -582,7 +584,9 @@ function () {
     }
   }, {
     key: "defaultErrorHandler",
-    value: function defaultErrorHandler(code, reason, url, method, responseBody) {
+    value: function defaultErrorHandler(response, responseBody, url, method) {
+      var code = response.status,
+          reason = response.statusText;
       if (code >= 200 && code <= 299) return;
       var error = undefined;
       var details = responseBody;
@@ -622,7 +626,7 @@ function () {
       var requestBody = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       return response.text().then(function (responseBody) {
         var jsonRequired = _this5.parseJsonResponse && !_this5.skipJsonOnStatusCodes.includes(response.status);
-        var json = jsonRequired ? _this5.parseJson(responseBody, url, method) : undefined;
+        var json = jsonRequired ? _this5.parseJson(response, responseBody, url, method) : undefined;
         if (_this5.verbose) console.log("handleRestResponse:\n", _this5.id, method, url, response.status, response.statusText, "\nResponse:\n", requestHeaders, "\n", responseBody, "\n");
         _this5.last_http_response = responseBody; // FIXME: for those classes that haven't switched to handleErrors yet
 
@@ -632,7 +636,7 @@ function () {
 
         _this5.handleErrors.apply(_this5, args);
 
-        _this5.defaultErrorHandler(response.status, response.statusText, url, method, responseBody);
+        _this5.defaultErrorHandler(response, responseBody, url, method);
 
         return jsonRequired ? json : responseBody;
       });
@@ -971,25 +975,27 @@ function () {
       var _fetchL2OrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee5(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
-                params = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : {};
-                _context5.next = 3;
-                return this.fetchOrderBook(symbol, params);
+                limit = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
+                params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
+                _context5.next = 4;
+                return this.fetchOrderBook(symbol, limit, params);
 
-              case 3:
+              case 4:
                 orderbook = _context5.sent;
                 return _context5.abrupt("return", extend(orderbook, {
                   'bids': sortBy(aggregate(orderbook.bids), 0, true),
                   'asks': sortBy(aggregate(orderbook.asks), 0)
                 }));
 
-              case 5:
+              case 6:
               case "end":
                 return _context5.stop();
             }
@@ -1372,8 +1378,8 @@ function () {
       };
     }
   }, {
-    key: "Ymd",
-    value: function Ymd(timestamp) {
+    key: "ymd",
+    value: function ymd(timestamp) {
       var infix = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ' ';
       var date = new Date(timestamp);
       var Y = date.getUTCFullYear();
@@ -1384,8 +1390,8 @@ function () {
       return Y + '-' + m + '-' + d;
     }
   }, {
-    key: "YmdHMS",
-    value: function YmdHMS(timestamp) {
+    key: "ymdhms",
+    value: function ymdhms(timestamp) {
       var infix = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ' ';
       var date = new Date(timestamp);
       var Y = date.getUTCFullYear();

@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -165,7 +165,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             response,
             orderbook,
@@ -174,19 +175,20 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
                 market = this.market(symbol);
-                _context2.next = 4;
+                _context2.next = 5;
                 return this.publicGetMarketOrderbook(this.extend({
                   'market': market['id']
                 }, params));
 
-              case 4:
+              case 5:
                 response = _context2.sent;
                 orderbook = response['data'];
                 return _context2.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 7:
+              case 8:
               case "end":
                 return _context2.stop();
             }
@@ -335,9 +337,9 @@ function (_Exchange) {
                   'market': market['id'],
                   'amount_int': parseInt(amount * 100000000),
                   'fee_currency': market['quote'],
-                  'type': side == 'buy' ? 'bid' : 'ask'
+                  'type': side === 'buy' ? 'bid' : 'ask'
                 };
-                if (type == 'limit') order['price_int'] = parseInt(price * 100000.0);
+                if (type === 'limit') order['price_int'] = parseInt(price * 100000.0);
                 _context5.next = 7;
                 return this.privatePostMarketMoneyOrderAdd(this.extend(order, params));
 
@@ -407,7 +409,7 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.version + '/' + request;
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();

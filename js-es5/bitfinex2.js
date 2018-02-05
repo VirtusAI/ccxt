@@ -818,7 +818,7 @@ function (_bitfinex) {
             'base': 'FUN',
             'quote': 'ETH',
             'baseId': 'tFUN',
-            'quoteId': 'zETH '
+            'quoteId': 'zETH'
           },
           'MNA/USD': {
             'id': 'tMNAUSD',
@@ -1115,7 +1115,8 @@ function (_bitfinex) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             timestamp,
             result,
@@ -1129,14 +1130,15 @@ function (_bitfinex) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.publicGetBookSymbolPrecision(this.extend({
                   'symbol': this.marketId(symbol),
                   'precision': 'R0'
                 }, params));
 
-              case 3:
+              case 4:
                 orderbook = _context2.sent;
                 timestamp = this.milliseconds();
                 result = {
@@ -1159,7 +1161,7 @@ function (_bitfinex) {
                 result['asks'] = this.sortBy(result['asks'], 0);
                 return _context2.abrupt("return", result);
 
-              case 10:
+              case 11:
               case "end":
                 return _context2.stop();
             }

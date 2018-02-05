@@ -173,7 +173,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             timestamp,
             _args = arguments;
@@ -181,25 +182,26 @@ function (_Exchange) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
+                limit = _args.length > 1 && _args[1] !== undefined ? _args[1] : undefined;
+                params = _args.length > 2 && _args[2] !== undefined ? _args[2] : {};
 
                 if (!(symbol !== 'BTC/USD')) {
-                  _context.next = 3;
+                  _context.next = 4;
                   break;
                 }
 
                 throw new ExchangeError(this.id + ' ' + this.version + " fetchOrderBook doesn't support " + symbol + ', use it for BTC/USD only');
 
-              case 3:
-                _context.next = 5;
+              case 4:
+                _context.next = 6;
                 return this.publicGetOrderBook(params);
 
-              case 5:
+              case 6:
                 orderbook = _context.sent;
                 timestamp = parseInt(orderbook['timestamp']) * 1000;
                 return _context.abrupt("return", this.parseOrderBook(orderbook, timestamp));
 
-              case 8:
+              case 9:
               case "end":
                 return _context.stop();
             }

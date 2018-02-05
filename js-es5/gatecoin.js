@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -313,7 +313,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             orderbook,
             _args3 = arguments;
@@ -321,22 +322,23 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context3.next = 6;
+                _context3.next = 7;
                 return this.publicGetPublicMarketDepthCurrencyPair(this.extend({
                   'CurrencyPair': market['id']
                 }, params));
 
-              case 6:
+              case 7:
                 orderbook = _context3.sent;
                 return _context3.abrupt("return", this.parseOrderBook(orderbook, undefined, 'bids', 'asks', 'price', 'volume'));
 
-              case 8:
+              case 9:
               case "end":
                 return _context3.stop();
             }
@@ -487,7 +489,7 @@ function (_Exchange) {
       var order = undefined;
 
       if ('way' in trade) {
-        side = trade['way'] == 'bid' ? 'buy' : 'sell';
+        side = trade['way'] === 'bid' ? 'buy' : 'sell';
         var orderId = trade['way'] + 'OrderId';
         order = trade[orderId];
       }
@@ -636,10 +638,10 @@ function (_Exchange) {
               case 4:
                 order = {
                   'Code': this.marketId(symbol),
-                  'Way': side == 'buy' ? 'Bid' : 'Ask',
+                  'Way': side === 'buy' ? 'Bid' : 'Ask',
                   'Amount': amount
                 };
-                if (type == 'limit') order['Price'] = price;
+                if (type === 'limit') order['Price'] = price;
 
                 if (!this.twofa) {
                   _context8.next = 12;
@@ -731,13 +733,13 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         var nonceString = nonce.toString();
-        var contentType = method == 'GET' ? '' : 'application/json';
+        var contentType = method === 'GET' ? '' : 'application/json';
         var auth = method + url + contentType + nonceString;
         auth = auth.toLowerCase();
         var signature = this.hmac(this.encode(auth), this.encode(this.secret), 'sha256', 'base64');
@@ -747,7 +749,7 @@ function (_Exchange) {
           'API_REQUEST_DATE': nonceString
         };
 
-        if (method != 'GET') {
+        if (method !== 'GET') {
           headers['Content-Type'] = contentType;
           body = this.json(this.extend({
             'nonce': nonce
@@ -800,7 +802,7 @@ function (_Exchange) {
                   break;
                 }
 
-                if (!(response['responseStatus']['message'] == 'OK')) {
+                if (!(response['responseStatus']['message'] === 'OK')) {
                   _context10.next = 12;
                   break;
                 }

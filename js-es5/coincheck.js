@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -159,31 +159,33 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args2 = arguments;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
 
-                if (!(symbol != 'BTC/JPY')) {
-                  _context2.next = 3;
+                if (!(symbol !== 'BTC/JPY')) {
+                  _context2.next = 4;
                   break;
                 }
 
                 throw new NotSupported(this.id + ' fetchOrderBook () supports BTC/JPY only');
 
-              case 3:
-                _context2.next = 5;
+              case 4:
+                _context2.next = 6;
                 return this.publicGetOrderBooks(params);
 
-              case 5:
+              case 6:
                 orderbook = _context2.sent;
                 return _context2.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 7:
+              case 8:
               case "end":
                 return _context2.stop();
             }
@@ -211,7 +213,7 @@ function (_Exchange) {
               case 0:
                 params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
 
-                if (!(symbol != 'BTC/JPY')) {
+                if (!(symbol !== 'BTC/JPY')) {
                   _context3.next = 3;
                   break;
                 }
@@ -294,7 +296,7 @@ function (_Exchange) {
                 limit = _args4.length > 2 && _args4[2] !== undefined ? _args4[2] : undefined;
                 params = _args4.length > 3 && _args4[3] !== undefined ? _args4[3] : {};
 
-                if (!(symbol != 'BTC/JPY')) {
+                if (!(symbol !== 'BTC/JPY')) {
                   _context4.next = 5;
                   break;
                 }
@@ -366,10 +368,10 @@ function (_Exchange) {
                   'pair': this.marketId(symbol)
                 };
 
-                if (type == 'market') {
+                if (type === 'market') {
                   order_type = type + '_' + side;
                   order['order_type'] = order_type;
-                  prefix = side == 'buy' ? order_type + '_' : '';
+                  prefix = side === 'buy' ? order_type + '_' : '';
                   order[prefix + 'amount'] = amount;
                 } else {
                   order['order_type'] = side;
@@ -445,14 +447,14 @@ function (_Exchange) {
       var url = this.urls['api'] + '/' + this.implodeParams(path, params);
       var query = this.omit(params, this.extractParams(path));
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(query).length) url += '?' + this.urlencode(query);
       } else {
         this.checkRequiredCredentials();
         var nonce = this.nonce().toString();
         var queryString = '';
 
-        if (method == 'GET') {
+        if (method === 'GET') {
           if (_Object$keys(query).length) url += '?' + this.urlencode(this.keysort(query));
         } else {
           if (_Object$keys(query).length) {
@@ -505,7 +507,7 @@ function (_Exchange) {
               case 7:
                 response = _context7.sent;
 
-                if (!(api == 'public')) {
+                if (!(api === 'public')) {
                   _context7.next = 10;
                   break;
                 }

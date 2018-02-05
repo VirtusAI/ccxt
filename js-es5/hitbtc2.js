@@ -687,13 +687,14 @@ function (_hitbtc) {
                   precision = 8; // default precision, todo: fix "magic constants"
 
                   code = this.commonCurrencyCode(id);
-                  payin = currency['payinEnabled'];
-                  payout = currency['payoutEnabled'];
-                  transfer = currency['transferEnabled'];
+                  payin = this.safeValue(currency, 'payinEnabled');
+                  payout = this.safeValue(currency, 'payoutEnabled');
+                  transfer = this.safeValue(currency, 'transferEnabled');
                   active = payin && payout && transfer;
                   status = 'ok';
                   if ('disabled' in currency) if (currency['disabled']) status = 'disabled';
-                  type = currency['crypto'] ? 'crypto' : 'fiat';
+                  type = 'fiat';
+                  if ('crypto' in currency && currency['crypto']) type = 'crypto';
                   result[code] = {
                     'id': id,
                     'code': code,
@@ -874,29 +875,34 @@ function (_hitbtc) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee5(symbol) {
-        var params,
+        var limit,
+            params,
+            request,
             orderbook,
             _args5 = arguments;
         return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
             switch (_context5.prev = _context5.next) {
               case 0:
-                params = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : {};
-                _context5.next = 3;
+                limit = _args5.length > 1 && _args5[1] !== undefined ? _args5[1] : undefined;
+                params = _args5.length > 2 && _args5[2] !== undefined ? _args5[2] : {};
+                _context5.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context5.next = 5;
-                return this.publicGetOrderbookSymbol(this.extend({
-                  'symbol': this.marketId(symbol) // 'limit': 100, // default = 100, 0 = unlimited
+              case 4:
+                request = {
+                  'symbol': this.marketId(symbol)
+                };
+                if (typeof limit !== 'undefined') request['limit'] = limit; // default = 100, 0 = unlimited
 
-                }, params));
+                _context5.next = 8;
+                return this.publicGetOrderbookSymbol(this.extend(request, params));
 
-              case 5:
+              case 8:
                 orderbook = _context5.sent;
                 return _context5.abrupt("return", this.parseOrderBook(orderbook, undefined, 'bid', 'ask', 'price', 'size'));
 
-              case 7:
+              case 10:
               case "end":
                 return _context5.stop();
             }
@@ -1832,6 +1838,8 @@ function (_hitbtc) {
 
               if (message === 'Order not found') {
                 throw new OrderNotFound(this.id + ' order not found in active orders');
+              } else if (message === 'Quantity not a valid number') {
+                throw new InvalidOrder(this.id + ' ' + body);
               } else if (message === 'Insufficient funds') {
                 throw new InsufficientFunds(this.id + ' ' + body);
               } else if (message === 'Duplicate clientOrderId') {

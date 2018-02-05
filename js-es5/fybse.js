@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -134,22 +134,24 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args2 = arguments;
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.publicGetOrderbook(params);
 
-              case 3:
+              case 4:
                 orderbook = _context2.sent;
                 return _context2.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 5:
+              case 6:
               case "end":
                 return _context2.stop();
             }
@@ -364,7 +366,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         url += '.json';
       } else {
         this.checkRequiredCredentials();
@@ -414,7 +416,7 @@ function (_Exchange) {
               case 7:
                 response = _context7.sent;
 
-                if (!(api == 'private')) {
+                if (!(api === 'private')) {
                   _context7.next = 12;
                   break;
                 }

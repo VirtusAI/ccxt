@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _Object$keys = require("@babel/runtime/core-js/object/keys");
 
@@ -183,7 +183,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             orderbook,
             _args3 = arguments;
@@ -191,22 +192,23 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context3.next = 6;
+                _context3.next = 7;
                 return this.publicPostGetOrderBook(this.extend({
                   'productPair': market['id']
                 }, params));
 
-              case 6:
+              case 7:
                 orderbook = _context3.sent;
                 return _context3.abrupt("return", this.parseOrderBook(orderbook, undefined, 'bids', 'asks', 'px', 'qty'));
 
-              case 8:
+              case 9:
               case "end":
                 return _context3.stop();
             }
@@ -284,7 +286,7 @@ function (_Exchange) {
     key: "parseTrade",
     value: function parseTrade(trade, market) {
       var timestamp = trade['unixtime'] * 1000;
-      var side = trade['incomingOrderSide'] == 0 ? 'buy' : 'sell';
+      var side = trade['incomingOrderSide'] === 0 ? 'buy' : 'sell';
       return {
         'info': trade,
         'timestamp': timestamp,
@@ -366,7 +368,7 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                orderType = type == 'market' ? 1 : 0;
+                orderType = type === 'market' ? 1 : 0;
                 order = {
                   'ins': this.marketId(symbol),
                   'side': side,
@@ -453,7 +455,7 @@ function (_Exchange) {
       var body = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : undefined;
       var url = this.urls['api'] + '/' + this.version + '/' + path;
 
-      if (api == 'public') {
+      if (api === 'public') {
         if (_Object$keys(params).length) {
           body = this.json(params);
         }

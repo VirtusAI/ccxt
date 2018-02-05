@@ -134,8 +134,8 @@ function (_Exchange) {
             ids,
             i,
             id,
-            currency,
             code,
+            currency,
             balance,
             account,
             _args2 = arguments;
@@ -161,8 +161,13 @@ function (_Exchange) {
 
                 for (i = 0; i < ids.length; i++) {
                   id = ids[i];
-                  currency = this.currencies[id];
-                  code = currency['code'];
+                  code = id;
+
+                  if (id in this.currencies) {
+                    currency = this.currencies[id];
+                    code = currency['code'];
+                  }
+
                   balance = parseFloat(balances[id]);
                   account = {
                     'free': balance,
@@ -192,28 +197,30 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context3.next = 5;
+              case 4:
+                _context3.next = 6;
                 return this.publicGetBcorderbook(this.extend({
                   'symbol': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context3.sent;
                 return _context3.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 7:
+              case 8:
               case "end":
                 return _context3.stop();
             }

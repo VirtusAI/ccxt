@@ -225,7 +225,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             response,
             result,
@@ -235,18 +236,19 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context3.next = 6;
+                _context3.next = 7;
                 return this.publicGetOrderBook(this.extend({
                   'pair': market['id']
                 }, params));
 
-              case 6:
+              case 7:
                 response = _context3.sent;
                 result = response[market['id']];
                 orderbook = this.parseOrderBook(result, undefined, 'bid', 'ask');
@@ -255,7 +257,7 @@ function (_Exchange) {
                   'asks': this.sortBy(orderbook['asks'], 0)
                 }));
 
-              case 10:
+              case 11:
               case "end":
                 return _context3.stop();
             }
@@ -553,6 +555,7 @@ function (_Exchange) {
       _regeneratorRuntime.mark(function _callee9(currency, amount, address) {
         var tag,
             params,
+            request,
             result,
             _args9 = arguments;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
@@ -565,21 +568,23 @@ function (_Exchange) {
                 return this.loadMarkets();
 
               case 4:
-                _context9.next = 6;
-                return this.privatePostWithdrawCrypt(this.extend({
+                request = {
                   'amount': amount,
                   'currency': currency,
                   'address': address
-                }, params));
+                };
+                if (typeof tag !== 'undefined') request['invoice'] = tag;
+                _context9.next = 8;
+                return this.privatePostWithdrawCrypt(this.extend(request, params));
 
-              case 6:
+              case 8:
                 result = _context9.sent;
                 return _context9.abrupt("return", {
                   'info': result,
                   'id': result['task_id']
                 });
 
-              case 8:
+              case 10:
               case "end":
                 return _context9.stop();
             }

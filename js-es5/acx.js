@@ -239,8 +239,10 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             market,
+            request,
             orderbook,
             timestamp,
             result,
@@ -249,19 +251,22 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
+              case 4:
                 market = this.market(symbol);
-                _context3.next = 6;
-                return this.publicGetDepth(this.extend({
-                  'market': market['id'],
-                  'limit': 300
-                }, params));
+                request = {
+                  'market': market['id']
+                };
+                if (typeof limit === 'undefined') request['limit'] = limit; // default = 300
 
-              case 6:
+                _context3.next = 9;
+                return this.publicGetDepth(this.extend(request, params));
+
+              case 9:
                 orderbook = _context3.sent;
                 timestamp = orderbook['timestamp'] * 1000;
                 result = this.parseOrderBook(orderbook, timestamp);
@@ -269,7 +274,7 @@ function (_Exchange) {
                 result['asks'] = this.sortBy(result['asks'], 0);
                 return _context3.abrupt("return", result);
 
-              case 12:
+              case 15:
               case "end":
                 return _context3.stop();
             }

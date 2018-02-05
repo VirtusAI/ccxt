@@ -1,4 +1,4 @@
-"use strict"; //  ---------------------------------------------------------------------------
+'use strict'; //  ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -125,8 +125,8 @@ function (_Exchange) {
     key: "commonCurrencyCode",
     value: function commonCurrencyCode(currency) {
       // why would they use three letters instead of four for currency codes
-      if (currency == 'DAS') return 'DASH';
-      if (currency == 'DOG') return 'DOGE';
+      if (currency === 'DAS') return 'DASH';
+      if (currency === 'DOG') return 'DOGE';
       return currency;
     }
   }, {
@@ -197,28 +197,30 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
             orderbook,
             _args3 = arguments;
         return _regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context3.next = 5;
+              case 4:
+                _context3.next = 6;
                 return this.publicGetOrderbook(this.extend({
                   'pairing': this.marketId(symbol)
                 }, params));
 
-              case 5:
+              case 6:
                 orderbook = _context3.sent;
                 return _context3.abrupt("return", this.parseOrderBook(orderbook));
 
-              case 7:
+              case 8:
               case "end":
                 return _context3.stop();
             }
@@ -524,7 +526,7 @@ function (_Exchange) {
       if (path) url += path + '/';
       if (_Object$keys(params).length) url += '?' + this.urlencode(params);
 
-      if (api == 'private') {
+      if (api === 'private') {
         this.checkRequiredCredentials();
         var nonce = this.nonce();
         var auth = this.apiKey + nonce.toString() + this.secret;
@@ -575,7 +577,7 @@ function (_Exchange) {
               case 7:
                 response = _context9.sent;
 
-                if (!(api == 'public')) {
+                if (!(api === 'public')) {
                   _context9.next = 10;
                   break;
                 }

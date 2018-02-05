@@ -1,4 +1,4 @@
-"use strict"; // ---------------------------------------------------------------------------
+'use strict'; // ---------------------------------------------------------------------------
 
 var _regeneratorRuntime = require("@babel/runtime/regenerator");
 
@@ -198,7 +198,9 @@ function (_bittrex) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
+            request,
             response,
             orderbook,
             _args2 = arguments;
@@ -206,24 +208,27 @@ function (_bittrex) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context2.next = 5;
-                return this.publicGetOrderbook(this.extend({
+              case 4:
+                request = {
                   'market': this.marketId(symbol),
-                  'type': 'ALL',
-                  'depth': 50
-                }, params));
+                  'type': 'ALL'
+                };
+                if (typeof limit !== 'undefined') request['depth'] = limit; // 50
 
-              case 5:
+                _context2.next = 8;
+                return this.publicGetOrderbook(this.extend(request, params));
+
+              case 8:
                 response = _context2.sent;
                 orderbook = response['result'];
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, undefined, 'buy', 'sell', 'Rate', 'Quantity'));
 
-              case 8:
+              case 11:
               case "end":
                 return _context2.stop();
             }

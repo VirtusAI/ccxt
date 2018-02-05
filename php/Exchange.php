@@ -30,7 +30,7 @@ SOFTWARE.
 
 namespace ccxt;
 
-$version = '1.10.954';
+$version = '1.10.1002';
 
 abstract class Exchange {
 
@@ -66,12 +66,12 @@ abstract class Exchange {
         'btctradeua',
         'btcturk',
         'btcx',
-        'bter',
         'bxinth',
         'ccex',
         'cex',
         'chbtc',
         'chilebit',
+        'cobinhood',
         'coincheck',
         'coinexchange',
         'coinfloor',
@@ -447,11 +447,11 @@ abstract class Exchange {
         return $time;
     }
 
-    public static function Ymd ($timestamp, $infix = ' ') {
+    public static function ymd ($timestamp, $infix = ' ') {
         return gmdate ('Y-m-d', (int) round ($timestamp / 1000));
     }
 
-    public static function YmdHMS ($timestamp, $infix = ' ') {
+    public static function ymdhms ($timestamp, $infix = ' ') {
         return gmdate ('Y-m-d\\' . $infix . 'H:i:s', (int) round ($timestamp / 1000));
     }
 
@@ -751,9 +751,8 @@ abstract class Exchange {
         curl_setopt ($this->curl, CURLOPT_URL, $url);
 
         if ($this->timeout) {
-            $seconds = intval ($this->timeout / 1000);
-            curl_setopt ($this->curl, CURLOPT_CONNECTTIMEOUT, $seconds);
-            curl_setopt ($this->curl, CURLOPT_TIMEOUT, $seconds);
+            curl_setopt ($this->curl, CURLOPT_CONNECTTIMEOUT_MS, (int)($this->timeout));
+            curl_setopt ($this->curl, CURLOPT_TIMEOUT_MS, (int)($this->timeout));
         }
 
         curl_setopt ($this->curl, CURLOPT_RETURNTRANSFER, true);
@@ -1075,16 +1074,16 @@ abstract class Exchange {
         return $this->parse_bids_asks ($bidasks, $price_key, $amount_key);
     }
 
-    public function fetch_l2_order_book ($symbol, $params = array ()) {
-        $orderbook = $this->fetch_order_book ($symbol, $params);
+    public function fetch_l2_order_book ($symbol, $limit = null, $params = array ()) {
+        $orderbook = $this->fetch_order_book ($symbol, $limit, $params);
         return array_merge ($orderbook, array (
             'bids' => $this->sort_by ($this->aggregate ($orderbook['bids']), 0, true),
             'asks' => $this->sort_by ($this->aggregate ($orderbook['asks']), 0),
         ));
     }
 
-    public function fetchL2OrderBook ($symbol, $params = array ()) {
-        return $this->fetch_l2_order_book ($symbol, $params);
+    public function fetchL2OrderBook ($symbol, $limit = null, $params = array ()) {
+        return $this->fetch_l2_order_book ($symbol, $limit, $params);
     }
 
     public function parse_order_book ($orderbook, $timestamp = null, $bids_key = 'bids', $asks_key = 'asks', $price_key = 0, $amount_key = 1) {
@@ -1278,8 +1277,8 @@ abstract class Exchange {
 		throw new NotSupported ($this->id . ' fetch_balance() not implemented yet');
 	}
 
-    public function fetchOrderBook ($symbol, $params = array ()) {
-        return $this->fetch_order_book ($symbol, $params);
+    public function fetchOrderBook ($symbol, $limit = null, $params = array ()) {
+        return $this->fetch_order_book ($symbol, $limit, $params);
     }
 
     public function fetchTicker ($symbol, $params = array ()) {

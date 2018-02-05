@@ -230,7 +230,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             response,
             orderbook,
             t,
@@ -240,20 +241,21 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
-                _context2.next = 3;
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
+                _context2.next = 4;
                 return this.publicGetCurrencyPairMoneyDepthFull(this.extend({
                   'currency_pair': this.marketId(symbol)
                 }, params));
 
-              case 3:
+              case 4:
                 response = _context2.sent;
                 orderbook = response['data'];
                 t = parseInt(orderbook['dataUpdateTime']);
                 timestamp = parseInt(t / 1000);
                 return _context2.abrupt("return", this.parseOrderBook(orderbook, timestamp, 'bids', 'asks', 'price', 'amount'));
 
-              case 8:
+              case 9:
               case "end":
                 return _context2.stop();
             }

@@ -39,10 +39,9 @@ function (_okcoinusd) {
         'countries': ['CN', 'US'],
         'has': {
           'CORS': false,
-          'hutureMarkets': true,
+          'futures': true,
           'hasFetchTickers': true,
-          'fetchTickers': true,
-          'futureMarkets': true
+          'fetchTickers': true
         },
         'urls': {
           'logo': 'https://user-images.githubusercontent.com/1294454/32552768-0d6dd3c6-c4a6-11e7-90f8-c043b64756a7.jpg',
@@ -67,11 +66,49 @@ function (_okcoinusd) {
       return currency;
     }
   }, {
+    key: "fetchMarkets",
+    value: function () {
+      var _fetchMarkets = _asyncToGenerator(
+      /*#__PURE__*/
+      _regeneratorRuntime.mark(function _callee() {
+        var markets, i;
+        return _regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return _get(okex.prototype.__proto__ || _Object$getPrototypeOf(okex.prototype), "fetchMarkets", this).call(this);
+
+              case 2:
+                markets = _context.sent;
+
+                for (i = 0; i < markets.length; i++) {
+                  if (markets[i]['spot']) {
+                    markets[i]['maker'] = -0.001;
+                    markets[i]['taker'] = 0.001;
+                  }
+                }
+
+                return _context.abrupt("return", markets);
+
+              case 5:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      return function fetchMarkets() {
+        return _fetchMarkets.apply(this, arguments);
+      };
+    }()
+  }, {
     key: "fetchTickers",
     value: function () {
       var _fetchTickers = _asyncToGenerator(
       /*#__PURE__*/
-      _regeneratorRuntime.mark(function _callee() {
+      _regeneratorRuntime.mark(function _callee2() {
         var symbols,
             params,
             request,
@@ -84,23 +121,23 @@ function (_okcoinusd) {
             market,
             marketId,
             symbol,
-            _args = arguments;
-        return _regeneratorRuntime.wrap(function _callee$(_context) {
+            _args2 = arguments;
+        return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
-            switch (_context.prev = _context.next) {
+            switch (_context2.prev = _context2.next) {
               case 0:
-                symbols = _args.length > 0 && _args[0] !== undefined ? _args[0] : undefined;
-                params = _args.length > 1 && _args[1] !== undefined ? _args[1] : {};
-                _context.next = 4;
+                symbols = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : undefined;
+                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                _context2.next = 4;
                 return this.loadMarkets();
 
               case 4:
                 request = {};
-                _context.next = 7;
+                _context2.next = 7;
                 return this.publicGetTickers(this.extend(request, params));
 
               case 7:
-                response = _context.sent;
+                response = _context2.sent;
                 tickers = response['tickers'];
                 timestamp = parseInt(response['date']) * 1000;
                 result = {};
@@ -121,14 +158,14 @@ function (_okcoinusd) {
                   result[symbol] = ticker;
                 }
 
-                return _context.abrupt("return", result);
+                return _context2.abrupt("return", result);
 
               case 13:
               case "end":
-                return _context.stop();
+                return _context2.stop();
             }
           }
-        }, _callee, this);
+        }, _callee2, this);
       }));
 
       return function fetchTickers() {

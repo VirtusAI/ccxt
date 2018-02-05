@@ -202,7 +202,9 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee3(symbol) {
-        var params,
+        var limit,
+            params,
+            request,
             response,
             orderbook,
             _args3 = arguments;
@@ -210,24 +212,27 @@ function (_Exchange) {
           while (1) {
             switch (_context3.prev = _context3.next) {
               case 0:
-                params = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : {};
-                _context3.next = 3;
+                limit = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : undefined;
+                params = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : {};
+                _context3.next = 4;
                 return this.loadMarkets();
 
-              case 3:
-                _context3.next = 5;
-                return this.publicGetOrderbook(this.extend({
+              case 4:
+                request = {
                   'market': this.marketId(symbol),
-                  'type': 'both',
-                  'depth': 100
-                }, params));
+                  'type': 'both'
+                };
+                if (typeof limit !== 'undefined') request['depth'] = limit; // 100
 
-              case 5:
+                _context3.next = 8;
+                return this.publicGetOrderbook(this.extend(request, params));
+
+              case 8:
                 response = _context3.sent;
                 orderbook = response['result'];
                 return _context3.abrupt("return", this.parseOrderBook(orderbook, undefined, 'buy', 'sell', 'Rate', 'Quantity'));
 
-              case 8:
+              case 11:
               case "end":
                 return _context3.stop();
             }

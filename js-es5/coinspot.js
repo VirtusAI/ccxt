@@ -155,7 +155,8 @@ function (_Exchange) {
       var _fetchOrderBook = _asyncToGenerator(
       /*#__PURE__*/
       _regeneratorRuntime.mark(function _callee2(symbol) {
-        var params,
+        var limit,
+            params,
             market,
             orderbook,
             result,
@@ -164,21 +165,22 @@ function (_Exchange) {
           while (1) {
             switch (_context2.prev = _context2.next) {
               case 0:
-                params = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : {};
+                limit = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : undefined;
+                params = _args2.length > 2 && _args2[2] !== undefined ? _args2[2] : {};
                 market = this.market(symbol);
-                _context2.next = 4;
+                _context2.next = 5;
                 return this.privatePostOrders(this.extend({
                   'cointype': market['id']
                 }, params));
 
-              case 4:
+              case 5:
                 orderbook = _context2.sent;
                 result = this.parseOrderBook(orderbook, undefined, 'buyorders', 'sellorders', 'rate', 'amount');
                 result['bids'] = this.sortBy(result['bids'], 0, true);
                 result['asks'] = this.sortBy(result['asks'], 0);
                 return _context2.abrupt("return", result);
 
-              case 9:
+              case 10:
               case "end":
                 return _context2.stop();
             }
@@ -265,7 +267,7 @@ function (_Exchange) {
       var price = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : undefined;
       var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
       var method = 'privatePostMy' + this.capitalize(side);
-      if (type == 'market') throw new ExchangeError(this.id + ' allows limit orders only');
+      if (type === 'market') throw new ExchangeError(this.id + ' allows limit orders only');
       var order = {
         'cointype': this.marketId(market),
         'amount': amount,
